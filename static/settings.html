@@ -202,16 +202,17 @@ td:first-child{width:190px;color:var(--grey-text)}
         <span class="sum" id="sum-llm"></span>
         <span class="chev">▾</span>
     </div>
-    <p class="hint">负责把检索到的资料组织成回答（RAG 流程的<b>生成</b>环节）。
-        <b>固定使用 DeepSeek API；本机 LLM 全局禁用。</b></p>
+    <p class="hint">由 LightRAG 调用的生成模型。接入方式、模型名、接口地址与密钥都在这里统一管理。</p>
     <div class="row"><label>接入方式</label>
-        <select id="llm_binding" disabled>
-            <option value="openai" selected>DeepSeek API（OpenAI 兼容，固定）</option>
-        </select>
-        <span class="sub">地址和模型由项目硬规则固定，不能改为本机或其他服务商。</span>
+        <input type="text" id="llm_binding" list="llm-binding-presets" placeholder="openai / ollama / azure_openai / gemini">
+        <datalist id="llm-binding-presets">
+            <option value="openai"></option><option value="ollama"></option>
+            <option value="azure_openai"></option><option value="gemini"></option>
+        </datalist>
+        <span class="sub">填写 LightRAG 支持的提供方名称。</span>
     </div>
-    <div class="row"><label>模型名称</label><input type="text" id="llm_model" value="deepseek-chat" readonly></div>
-    <div class="row"><label>接口地址</label><input type="text" id="llm_host" value="https://api.deepseek.com" readonly><span class="sub">DeepSeek API 固定地址</span></div>
+    <div class="row"><label>模型名称</label><input type="text" id="llm_model" placeholder="例如 deepseek-chat / gpt-4.1-mini / qwen2.5:7b"></div>
+    <div class="row"><label>接口地址</label><input type="text" id="llm_host" placeholder="例如 https://api.deepseek.com 或 http://localhost:11434"><span class="sub">OpenAI 兼容服务通常填写 base URL。</span></div>
     <div class="row"><label>API Key</label><input type="password" id="llm_api_key" placeholder="留空表示保持现有值不变"><button type="button" class="btn-clear" data-clear-secret="llm_api_key" hidden>清除</button></div>
 </section>
 
@@ -222,15 +223,17 @@ td:first-child{width:190px;color:var(--grey-text)}
         <span class="sum" id="sum-embedding"></span>
         <span class="chev">▾</span>
     </div>
-    <p class="hint">负责把文档编码成向量（RAG 流程的<b>检索</b>环节）。换模型或维度会让旧向量失效，需要重建知识库。</p>
-    <p class="hint"><b>固定为 bge-m3:latest。</b>本机 Ollama 只承担 RAG 嵌入，不参与 LLM 生成。</p>
+    <p class="hint">负责把文档编码成向量。换模型或维度后需要重建知识库。</p>
     <div class="row"><label>接入方式</label>
-        <select id="embedding_binding" disabled>
-            <option value="ollama" selected>本机 Ollama（固定）</option>
-        </select></div>
-    <div class="row"><label>模型名称</label><input type="text" id="embedding_model" value="bge-m3:latest" readonly></div>
-    <div class="row"><label>接口地址</label><input type="text" id="embedding_host" value="http://localhost:11434" readonly></div>
-    <input type="hidden" id="embedding_api_key" value="">
+        <input type="text" id="embedding_binding" list="embedding-binding-presets" placeholder="ollama / openai / azure_openai / gemini">
+        <datalist id="embedding-binding-presets">
+            <option value="ollama"></option><option value="openai"></option>
+            <option value="azure_openai"></option><option value="gemini"></option>
+        </datalist>
+    </div>
+    <div class="row"><label>模型名称</label><input type="text" id="embedding_model" placeholder="例如 bge-m3:latest / text-embedding-3-small"></div>
+    <div class="row"><label>接口地址</label><input type="text" id="embedding_host" placeholder="例如 http://localhost:11434 或 https://api.openai.com/v1"></div>
+    <div class="row"><label>API Key</label><input type="password" id="embedding_api_key" placeholder="本机 Ollama 可留空；远程服务按需填写"></div>
     <div class="row"><label>向量维度</label><input type="number" id="embedding_dim" min="1" step="1" placeholder="例如 1024"></div>
     <div class="row"><label>发送维度参数</label><select id="embedding_send_dim"><option value="">（不修改）</option><option value="true">是</option><option value="false">否</option></select></div>
 </section>
@@ -271,6 +274,11 @@ td:first-child{width:190px;color:var(--grey-text)}
             <option value="local">本地文件（无需 Qdrant，便于迁移）</option>
         </select></div>
     <div class="row"><label>Qdrant 地址</label><input type="text" id="vector_store_qdrant_url" placeholder="http://localhost:6333"></div>
+    <h2 class="subhead">分块与召回</h2>
+    <div class="row"><label>分块大小</label><input type="number" id="rag_chunk_size" min="100" max="10000" step="1" placeholder="默认 1200 tokens"></div>
+    <div class="row"><label>分块重叠</label><input type="number" id="rag_chunk_overlap" min="0" max="2000" step="1" placeholder="默认 100 tokens"></div>
+    <div class="row"><label>实体/关系召回数</label><input type="number" id="rag_top_k" min="1" max="500" step="1" placeholder="默认 50"></div>
+    <div class="row"><label>文本片段召回数</label><input type="number" id="rag_chunk_top_k" min="1" max="500" step="1" placeholder="默认 30"></div>
 </section>
 
 <section class="card" id="sec-paths">
@@ -280,10 +288,10 @@ td:first-child{width:190px;color:var(--grey-text)}
         <span class="sum" id="sum-paths"></span>
         <span class="chev">▾</span>
     </div>
-    <p class="hint">知识库落地在磁盘上的位置。换电脑或搬家时只需要改这里的路径；数据目录留空表示沿用 LightRAG 自身设置。</p>
-    <div class="row"><label>LightRAG 目录</label><input type="text" id="paths_lightrag_home" placeholder="可填相对路径如 lightrag（相对项目根），或绝对路径如 lightrag/"></div>
-    <div class="row"><label>知识库数据目录</label><input type="text" id="graph_working_dir" placeholder="可填相对路径，如 ./rag_storage（相对项目根）"></div>
-    <div class="row"><label>文档输入目录</label><input type="text" id="graph_input_dir" placeholder="可填相对路径，如 ./knowledge（相对项目根）"></div>
+    <p class="hint">运行数据默认存放在 <code>%LOCALAPPDATA%\ProfileAI</code>。可填写绝对路径；相对路径按用户数据目录解析。</p>
+    <div class="row"><label>LightRAG 安装目录</label><input type="text" id="paths_lightrag_home" placeholder="留空 = ProfileAI\backend\lightrag"></div>
+    <div class="row"><label>知识库数据目录</label><input type="text" id="graph_working_dir" placeholder="留空 = ProfileAI\rag_storage"></div>
+    <div class="row"><label>文档输入目录</label><input type="text" id="graph_input_dir" placeholder="留空 = ProfileAI\data\lightrag_input"></div>
 </section>
 
 <section class="card" id="sec-quality">
@@ -343,19 +351,19 @@ td:first-child{width:190px;color:var(--grey-text)}
         <span class="sum" id="sum-inbox"></span>
         <span class="chev">▾</span>
     </div>
-    <p class="hint">把文件<b>复制或移动到 <code>data\inbox\</code></b> 就会自动入库：程序每 N 秒扫一次，
-        等文件「长稳」（连续两轮大小不变）后受理，原件移动到 <code>data\originals\年月\</code> 留档，
-        内容完全相同（sha256 一致）的文件不再入库第二次（归档到 <code>data\inbox\_taken\</code>）。<br>
+    <p class="hint">把文件<b>复制或移动到用户数据目录的 <code>inbox</code></b> 就会自动入库：程序每 N 秒扫一次，
+        等文件「长稳」（连续两轮大小不变）后受理，原件移动到 <code>ProfileAI\data\originals\年月\</code> 留档，
+        内容完全相同（sha256 一致）的文件不再入库第二次（归档到 <code>inbox\_taken</code>）。<br>
         它与网页上传<b>走同一条流水线</b>：解析、质检、留档规则完全一致；不一样的只有
         <b>入库确认</b>（本卡片单独设置，默认 auto）。受理不了的文件（类型不支持 / 超过上传上限）
-        会移进 <code>data\inbox\_failed\</code> 并附一份 <code>.reason.txt</code>，<b>不会删除</b>。<br>
-        留空表示沿用 .env / 内置默认值（开关 true、间隔 10 秒、确认 auto）；改完需重启服务生效。
+        会移进 <code>inbox\_failed</code> 并附一份 <code>.reason.txt</code>，<b>不会删除</b>。<br>
+        留空表示沿用 .env / 内置默认值（开关 false、间隔 10 秒、确认 always）；改完需重启服务生效。
         看进度请打开 <a href="/files">文件管理</a> 页。</p>
     <p id="inboxState" class="note-line"></p>
     <div class="row"><label>启用文件夹轮询</label>
         <select id="inbox_enabled">
-            <option value="">（跟随 .env，默认 开启）</option>
-            <option value="true">开启：放进 data\inbox\ 的文件自动入库</option>
+            <option value="">（跟随默认值：关闭）</option>
+            <option value="true">开启：放进用户数据目录 inbox 的文件自动入库</option>
             <option value="false">关闭：收件箱不再被扫描（文件原样留着）</option>
         </select></div>
     <div class="row"><label>扫描间隔（秒）</label>
@@ -445,9 +453,9 @@ td:first-child{width:190px;color:var(--grey-text)}
     </div>
     <div class="row"><label>回答生成方式</label>
         <select id="app_generation_mode" disabled>
-            <option value="upstream" selected>上游 LightRAG（固定，DeepSeek）</option>
+            <option value="upstream" selected>LightRAG 上游</option>
         </select>
-        <span class="sub">本机 LLM 已全局禁用；Ollama 仅保留 bge-m3 作为 RAG 嵌入模型。</span>
+        <span class="sub">生成模型由上方「生成模型」统一配置。</span>
     </div>
     <div class="row"><label>局域网设备授权</label>
         <button type="button" id="accessDevicesRefresh" class="btn-clear">刷新设备</button>
@@ -537,6 +545,7 @@ const FIELDS = [
     ["embedding", "binding"], ["embedding", "model"], ["embedding", "host"], ["embedding", "api_key"], ["embedding", "dim"], ["embedding", "send_dim"],
     ["rerank", "binding"], ["rerank", "model"], ["rerank", "host"], ["rerank", "api_key"],
     ["vector_store", "type"], ["vector_store", "qdrant_url"],
+    ["rag", "chunk_size"], ["rag", "chunk_overlap"], ["rag", "top_k"], ["rag", "chunk_top_k"],
     ["graph", "working_dir"], ["graph", "input_dir"],
     ["paths", "lightrag_home"],
     ["app", "max_upload_size"], ["app", "allowed_extensions"], ["app", "log_level"],
@@ -548,7 +557,7 @@ const FIELDS = [
     ["quality", "pass_score"], ["quality", "max_unocr_images"],
     // 入库确认门（Phase 15）：通过质检后是否停下来等确认
     ["ingest", "confirm"], ["ingest", "ttl_hours"],
-    // 文件夹轮询（Phase 16）：data\inbox\ 自动入库 + 它自己的确认门
+    // 文件夹轮询（Phase 16）：ProfileAI\data\inbox\ 自动入库 + 它自己的确认门
     ["inbox", "enabled"], ["inbox", "poll_seconds"], ["inbox", "confirm"],
     // OCR 文字识别
     ["ocr", "mode"], ["ocr", "provider"], ["ocr", "image_ocr"], ["ocr", "lang"], ["ocr", "device"],
@@ -973,8 +982,6 @@ function renderEffective(data) {
         ["日志级别", app.log_level || "—"],
         ["问答技能路由", routingText],
         ["回答生成方式", genText],
-        ["本机 LLM", "全局禁用（不参与生成）"],
-        ["RAG 嵌入模型", "bge-m3:latest（本机 Ollama）"]
     ];
     const appBody = document.querySelector("#appTable tbody");
     appBody.innerHTML = "";
@@ -1216,12 +1223,14 @@ function renderSummaries(data) {
         lr.EMBEDDING_DIM ? (lr.EMBEDDING_DIM + " 维") : ""], "未设置");
     setSummary("sum-rerank", [pick("rerank", "binding") || norm(lr.RERANK_BINDING),
         pick("rerank", "model") || norm(lr.RERANK_MODEL)], "未启用");
-    setSummary("sum-vector", [norm(lr.LIGHTRAG_VECTOR_STORAGE)], "—");
+    setSummary("sum-vector", [norm(lr.LIGHTRAG_VECTOR_STORAGE),
+        pick("rag", "chunk_size") ? (pick("rag", "chunk_size") + " tokens/块") :
+            (norm(lr.CHUNK_SIZE) ? (norm(lr.CHUNK_SIZE) + " tokens/块") : "")], "—");
     setSummary("sum-paths", [norm(lr.WORKING_DIR)], "—");
     setSummary("sum-app", [uploadMb ? (Math.round(uploadMb / 1048576 * 10) / 10 + " MB 上限") : "",
         norm(app.log_level),
         (String(app.skill_routing || "").toLowerCase() === "on") ? "技能路由开" : "技能路由关",
-        "上游 DeepSeek 生成"], "—");
+        "LightRAG 上游生成"], "—");
     setSummary("sum-status", [norm(app.lightrag_url)], "只读汇总");
     // Phase 18：质检恒定开启 —— 摘要里说清"关不掉"，用户如果改过 .env 就点明"已被忽略"
     setSummary("sum-quality", ["恒定开启 · " + (quality.profile || "standard")
@@ -1353,9 +1362,9 @@ function renderInboxHint(data) {
     box.textContent = "现在生效：" + (inbox.enabled ? "开启" : "关闭")
         + "，每 " + polling + " 秒扫一次收件箱，文件长稳 " + settle + " 秒后受理；"
         + "确认方式 " + (inbox.confirm || "auto") + "（" + (INBOX_MODE_TEXT[inbox.confirm] || "") + "）。"
-        + "目录：" + ((inbox.dirs || {}).inbox || "data/inbox") + " → 原件留档 "
-        + ((inbox.dirs || {}).originals || "data/originals") + "（受理失败隔离在 "
-        + ((inbox.dirs || {}).failed || "data/inbox/_failed") + "）。";
+        + "目录：" + ((inbox.dirs || {}).inbox || "ProfileAI/data/inbox") + " → 原件留档 "
+        + ((inbox.dirs || {}).originals || "ProfileAI/data/originals") + "（受理失败隔离在 "
+        + ((inbox.dirs || {}).failed || "ProfileAI/data/inbox/_failed") + "）。";
 }
 
 // 把「保存了什么 / 现在生效什么 / 为什么还不能用」写成一句人话（Phase 9.2）

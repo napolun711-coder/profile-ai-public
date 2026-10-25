@@ -1,50 +1,103 @@
-"""路径常量（Phase 1：消除对当前工作目录 CWD 的依赖）。
+"""应用路径与用户数据目录。
 
-所有路径都基于本文件位置推导为绝对路径，因此无论从哪个目录启动
-（uvicorn main:app / python main.py / uv run ...），静态资源与日志目录都能正确定位。
+源码目录只保存程序和模板；用户的配置、知识库、数据库、日志、模型与备份默认放在
+平台用户数据目录，不写入 Git 工作树。
+
+可用 PROFILE_AI_HOME 覆盖默认位置：
+- Windows: %LOCALAPPDATA%\\ProfileAI
+- macOS:   ~/Library/Application Support/ProfileAI
+- Linux:   $XDG_DATA_HOME/profile-ai 或 ~/.local/share/profile-ai
 """
 
+from __future__ import annotations
+
+import os
+import sys
 from pathlib import Path
+from typing import List
 
-CORE_DIR: Path = Path(__file__).resolve().parent          # app/core
-APP_DIR: Path = Path(__file__).resolve().parents[1]        # app
-BASE_DIR: Path = Path(__file__).resolve().parents[2]       # 项目根目录
-
-# Phase 6 起前端目录独立到项目根 static/（对外 URL /static 与 /web 保持不变）
+CORE_DIR: Path = Path(__file__).resolve().parent
+APP_DIR: Path = Path(__file__).resolve().parents[1]
+BASE_DIR: Path = Path(__file__).resolve().parents[2]
 STATIC_DIR: Path = BASE_DIR / "static"
-
-LOG_DIR: Path = BASE_DIR / "logs"
 ENV_FILE: Path = BASE_DIR / ".env"
+BUNDLED_CONFIG_DIR: Path = BASE_DIR / "config"
+EXAMPLE_SETTINGS_FILE: Path = BUNDLED_CONFIG_DIR / "user-settings.example.json"
 
-# ---------- Phase 8：文档解析与质量门的落盘目录 ----------
-DATA_DIR: Path = BASE_DIR / "data"
-# M1：对话/记忆数据库（SQLite）。放在 data/ 下，Docker 的 data 卷已覆盖。
+
+def _default_profile_home() -> Path:
+    override = str(os.environ.get("PROFILE_AI_HOME") or "").strip()
+    if override:
+        return Path(override).expanduser()
+    if os.name == "nt":
+        base = str(os.environ.get("LOCALAPPDATA") or "").strip()
+        return Path(base) / "ProfileAI" if base else Path.home() / "AppData" / "Local" / "ProfileAI"
+    if sys.platform == "darwin":
+        return Path.home() / "Library" / "Application Support" / "ProfileAI"
+    base = str(os.environ.get("XDG_DATA_HOME") or "").strip()
+    return Path(base) / "profile-ai" if base else Path.home() / ".local" / "share" / "profile-ai"
+
+
+PROFILE_AI_HOME: Path = _default_profile_home()
+CONFIG_DIR: Path = PROFILE_AI_HOME / "config"
+SETTINGS_FILE: Path = CONFIG_DIR / "user-settings.json"
+RUNTIME_FILE: Path = CONFIG_DIR / "runtime.json"
+LOG_DIR: Path = PROFILE_AI_HOME / "logs"
+DATA_DIR: Path = PROFILE_AI_HOME / "data"
 MEMORY_DIR: Path = DATA_DIR / "memory"
-UPLOAD_DIR: Path = DATA_DIR / "uploads"      # 上传原件留档（documents.py 使用）
-PARSED_DIR: Path = DATA_DIR / "parsed"       # 每个文件一个子目录：content.md + result.json
-KNOWLEDGE_DIR: Path = BASE_DIR / "knowledge"  # 通过质量门的统一 Markdown 留档
-OUTPUT_DIR: Path = BASE_DIR / "output"        # 产出目录（导出/报告预留）
+UPLOAD_DIR: Path = DATA_DIR / "uploads"
+PARSED_DIR: Path = DATA_DIR / "parsed"
+KNOWLEDGE_DIR: Path = PROFILE_AI_HOME / "knowledge"
+OUTPUT_DIR: Path = PROFILE_AI_HOME / "output"
+MODELS_DIR: Path = PROFILE_AI_HOME / "models"
+RAG_STORAGE_DIR: Path = PROFILE_AI_HOME / "rag_storage"
+BACKEND_DIR: Path = PROFILE_AI_HOME / "backend"
+LIGHTRAG_HOME: Path = BACKEND_DIR / "lightrag"
+LIGHTRAG_INPUT_DIR: Path = DATA_DIR / "lightrag_input"
+BACKUP_DIR: Path = PROFILE_AI_HOME / "backups"
 
-# ---------- Phase 16：文件夹轮询自动入库 + 原件留档 + 可视化文档管理 ----------
-# 全部落在 data\ 下：原生模式下是项目里的 data\，容器模式下是挂载进来的
-# 运行时数据始终位于独立数据目录，不随源码仓库发布。
-INBOX_DIR: Path = DATA_DIR / "inbox"                 # 丢进这里的文件会被自动入库
-INBOX_TAKEN_DIR: Path = INBOX_DIR / "_taken"         # 已处理过（含重复）→ 归档，不再扫描
-INBOX_FAILED_DIR: Path = INBOX_DIR / "_failed"       # 受理失败 → 隔离（附同名 .reason.txt）
-ORIGINALS_DIR: Path = DATA_DIR / "originals"         # 原件留档（按 YYYY-MM 分月）
-WATCH_DIR: Path = DATA_DIR / "watch"                 # 轮询状态（不参与业务）
-WATCH_INDEX: Path = WATCH_DIR / "index.json"         # sha256 → 已受理过的文件（防重复入库）
+INBOX_DIR: Path = DATA_DIR / "inbox"
+INBOX_TAKEN_DIR: Path = INBOX_DIR / "_taken"
+INBOX_FAILED_DIR: Path = INBOX_DIR / "_failed"
+ORIGINALS_DIR: Path = DATA_DIR / "originals"
+WATCH_DIR: Path = DATA_DIR / "watch"
+WATCH_INDEX: Path = WATCH_DIR / "index.json"
 
 FALLBACK_FILENAME = "upload.bin"
 
 
-def safe_filename(name: str, fallback: str = FALLBACK_FILENAME) -> str:
-    """把任意文件名收敛为安全的单段文件名（与上传留档的规则一致）。
+def ensure_directories() -> List[Path]:
+    """Create the profile-owned runtime directories and return them."""
+    directories = [
+        PROFILE_AI_HOME,
+        CONFIG_DIR,
+        LOG_DIR,
+        DATA_DIR,
+        MEMORY_DIR,
+        UPLOAD_DIR,
+        PARSED_DIR,
+        KNOWLEDGE_DIR,
+        OUTPUT_DIR,
+        MODELS_DIR,
+        RAG_STORAGE_DIR,
+        BACKEND_DIR,
+        LIGHTRAG_HOME,
+        LIGHTRAG_INPUT_DIR,
+        BACKUP_DIR,
+        INBOX_DIR,
+        INBOX_TAKEN_DIR,
+        INBOX_FAILED_DIR,
+        ORIGINALS_DIR,
+        WATCH_DIR,
+    ]
+    for directory in directories:
+        directory.mkdir(parents=True, exist_ok=True)
+    return directories
 
-    只保留字母/数字与 . _ -，去掉首尾的点与空格；为空时用 fallback。
-    """
+
+def safe_filename(name: str, fallback: str = FALLBACK_FILENAME) -> str:
+    """Reduce an arbitrary file name to one safe path segment."""
     base = Path(name or fallback).name
     kept = [char if (char.isalnum() or char in "._-") else "_" for char in base]
     cleaned = "".join(kept).strip(" .")
     return cleaned or fallback
-

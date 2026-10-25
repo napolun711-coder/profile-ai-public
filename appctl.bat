@@ -12,7 +12,7 @@ cd /d "%~dp0"
 if not exist ".venv\Scripts\python.exe" (
     echo.
     echo [ERROR] Python environment not found: .venv\Scripts\python.exe
-    echo         Run install_env.bat first.
+    echo         Run setup.cmd first.
     echo.
     pause
     exit /b 3

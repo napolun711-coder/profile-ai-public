@@ -18,9 +18,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
-from app.core.paths import DATA_DIR
-DEFAULT_BACKUP_ROOT = DATA_DIR / "backups"
-DEFAULT_TOMBSTONES = DATA_DIR / "memory" / "deletions.jsonl"
+from app.core.paths import BACKUP_DIR, MEMORY_DIR
+DEFAULT_BACKUP_ROOT = BACKUP_DIR
+DEFAULT_TOMBSTONES = MEMORY_DIR / "deletions.jsonl"
 MANIFEST_NAME = "manifest.json"
 MEMORY_NAME = "memory.db"
 TOMBSTONES_NAME = "deletions.jsonl"

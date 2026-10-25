@@ -28,7 +28,7 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from app.clients import lightrag
 from app.core.config import get_settings
-from app.core.paths import BASE_DIR
+from app.core.paths import PROFILE_AI_HOME, UPLOAD_DIR
 from app.services import ingest
 
 router = APIRouter()
@@ -40,7 +40,7 @@ UPLOAD_ACCEPTED_MESSAGE = "文件已受理，正在本地解析与质量检测"
 
 FALLBACK_FILENAME = "upload.bin"
 
-UPLOAD_ARCHIVE_ROOT = BASE_DIR / "data" / "uploads"
+UPLOAD_ARCHIVE_ROOT = UPLOAD_DIR
 
 
 def _safe_filename(name: str) -> str:
@@ -80,7 +80,7 @@ def _archive_upload(filename: str, content: bytes) -> str:
 
         logger.info("上传原件已留档：%s", target)
 
-        return str(target.relative_to(BASE_DIR)).replace(chr(92), "/")
+        return str(target.relative_to(PROFILE_AI_HOME)).replace(chr(92), "/")
 
     except Exception as exc:
 

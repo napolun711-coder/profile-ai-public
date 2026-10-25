@@ -16,7 +16,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Dict, List, Tuple
 
-from app.core.paths import BASE_DIR, ENV_FILE
+from app.core.paths import BASE_DIR, ENV_FILE, MEMORY_DIR
 from app.core import model_policy
 
 # 与 LightRAG config.py 的 max_upload_size 默认值对齐（100 MB）
@@ -216,7 +216,7 @@ class Settings:
     lan_keepalive: bool = True
     close_stop_lan_delay: int = 180        # 手机续命后的宽限：切后台 / 锁屏要留余量
 
-    lightrag_url: str = "http://127.0.0.1:9621"
+    lightrag_url: str = "http://127.0.0.1:9961"
     # 查询模式**已锁定为 "mix"**（见 app/clients/lightrag.py 的 QUERY_MODE），不再提供配置项：
     # 原 .env 的 LIGHTRAG_MODE=hybrid 与 LightRAG WebUI 检索面板的默认值（Mix）不一致，
     # 会出现"同一个知识库、两套答案"；现在两侧统一为 mix 且不可改。
@@ -249,9 +249,9 @@ class Settings:
 
     # ---------- M1：对话持久化 / 记忆系统 ----------
     # off（默认）时完全不创建/不写入数据库，聊天路径与改造前一致。
-    # on 时 /chat 与 /chat/stream 会把会话和消息写入 data/memory/profile-ai.db。
+    # on 时 /chat 与 /chat/stream 会把会话和消息写入用户数据目录中的 SQLite。
     memory_enabled: bool = False
-    # 数据库路径；留空 = data/memory/profile-ai.db。相对路径按项目根目录解析。
+    # 数据库路径；留空 = <PROFILE_AI_HOME>/data/memory/profile-ai.db。相对路径按用户数据目录解析。
     memory_db_path: str = ""
 
     # ---------- M2：短期上下文 / Tier 1 快记忆 ----------
@@ -432,7 +432,7 @@ class Settings:
             "skill_routing": self.skill_routing,
             "generation_mode": self.generation_mode,
             "memory_enabled": self.memory_enabled,
-            "memory_db_path": self.memory_db_path or "data/memory/profile-ai.db",
+            "memory_db_path": self.memory_db_path or str(MEMORY_DIR / "profile-ai.db"),
             "memory_context_enabled": self.memory_context_enabled,
             "memory_fast_memory": self.memory_fast_memory,
             "memory_context_budget": self.memory_context_budget,

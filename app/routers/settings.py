@@ -19,7 +19,7 @@ from fastapi.responses import FileResponse
 from app.clients import lightrag as lightrag_client
 from app.core import user_settings
 from app.core.config import get_settings
-from app.core.paths import STATIC_DIR
+from app.core.paths import INBOX_DIR, INBOX_FAILED_DIR, INBOX_TAKEN_DIR, ORIGINALS_DIR, PROFILE_AI_HOME, STATIC_DIR
 from app.core.probes import probe_tcp
 from app.services import ocr as ocr_service
 
@@ -204,10 +204,11 @@ def _payload() -> Dict[str, Any]:
             "confirm": settings.inbox_confirm,
             "restart_needed": _restart_needed(data),
             "dirs": {
-                "inbox": "data/inbox",
-                "originals": "data/originals",
-                "taken": "data/inbox/_taken",
-                "failed": "data/inbox/_failed",
+                "inbox": str(INBOX_DIR),
+                "originals": str(ORIGINALS_DIR),
+                "taken": str(INBOX_TAKEN_DIR),
+                "failed": str(INBOX_FAILED_DIR),
+                "home": str(PROFILE_AI_HOME),
                 "files_page": "/files",
             },
         },

@@ -24,7 +24,10 @@ from datetime import datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-LOGS = ROOT / "logs"
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from app.core.paths import LOG_DIR  # noqa: E402
+LOGS = LOG_DIR
 
 # 消息框图标（与 scripts/start.py、stop.py 用的同一套 user32 MessageBoxW 常量）
 MB_ICONERROR = 0x10

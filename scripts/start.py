@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import socket
 import subprocess
 import sys
@@ -44,11 +45,22 @@ except ImportError:
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = Path(__file__).resolve().parent
-LOGS = ROOT / "logs"
 
-# 复用应用侧的配置映射（唯一来源，避免两处维护）
-sys.path.insert(0, str(ROOT))
+# Reuse the app path/config model (single source of truth).
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 from app.core import user_settings  # noqa: E402
+from app.core import runtime as runtime_state  # noqa: E402
+from app.core.paths import (  # noqa: E402
+    LIGHTRAG_HOME,
+    LIGHTRAG_INPUT_DIR,
+    LOG_DIR,
+    PROFILE_AI_HOME,
+    RAG_STORAGE_DIR,
+    ensure_directories,
+)
+
+LOGS = LOG_DIR
 
 # 进度窗通信（scripts\splash_state.py，与启动器同目录）
 if str(SCRIPTS) not in sys.path:
@@ -525,27 +537,29 @@ def main() -> int:
 
     app_host = cfg(env, "APP_HOST", cfg(env, "HOST", "127.0.0.1"))
     app_port = int(cfg(env, "APP_PORT", cfg(env, "PORT", "8100")))
-    lightrag_url = cfg(env, "LIGHTRAG_URL", "http://127.0.0.1:9621")
+    ensure_directories()
+    configured_lightrag_url = cfg(env, "LIGHTRAG_URL", "").strip()
+    lightrag_url = configured_lightrag_url or runtime_state.persisted_lightrag_url() or "http://127.0.0.1:9961"
     # ---- Phase 4.2：读取网页设置页保存的用户配置（config/user-settings.json）----
     user_conf = user_settings.load()
     lightrag_env = user_settings.to_env(user_conf, "lightrag")
     app_env = user_settings.to_env(user_conf, "app")
 
-    # 数据目录支持相对路径（相对项目根），便于整包复制迁移
+    # Relative LightRAG paths are resolved against the profile data root.
     for rel_key in ("WORKING_DIR", "INPUT_DIR"):
         rel_value = lightrag_env.get(rel_key)
         if rel_value and not Path(rel_value).is_absolute():
-            lightrag_env[rel_key] = str((ROOT / rel_value).resolve())
+            lightrag_env[rel_key] = str((PROFILE_AI_HOME / rel_value).resolve())
 
     lightrag_home_value = (
         os.environ.get("LIGHTRAG_HOME")
         or str(user_conf.get("paths", {}).get("lightrag_home") or "")
         or cfg(env, "LIGHTRAG_HOME", "")
-        or (str(ROOT / "lightrag") if (ROOT / "lightrag").is_dir() else "./lightrag")
+        or str(LIGHTRAG_HOME)
     )
     lightrag_home = Path(lightrag_home_value)
     if not lightrag_home.is_absolute():
-        lightrag_home = (ROOT / lightrag_home).resolve()
+        lightrag_home = (PROFILE_AI_HOME / lightrag_home).resolve()
     lightrag_default_exe = lightrag_home / ".venv" / "Scripts" / "lightrag-server.exe"
     lightrag_exe = Path(cfg(env, "LIGHTRAG_SERVER_EXE", str(lightrag_default_exe)))
     ollama_url = cfg(env, "OLLAMA_URL", "http://localhost:11434")
@@ -555,21 +569,20 @@ def main() -> int:
 
     ollama_host, ollama_port = split_url(ollama_url, 11434)
     qdrant_host, qdrant_port = split_url(qdrant_url, 6333)
-    lr_host, lr_port = split_url(lightrag_url, 9621)
-    lightrag_local = lr_host in ("127.0.0.1", "localhost", "0.0.0.0", "::", "")
-    if lightrag_local and not port_open(lr_host, lr_port) and not port_bindable(lr_host, lr_port):
-        fallback_port = choose_lightrag_port("127.0.0.1", lr_port, app_port)
-        if fallback_port:
-            print(
-                "  [注意] LightRAG 配置端口 "
-                + str(lr_port)
-                + " 无法绑定（常见原因：Windows 保留端口），本次改用 "
-                + str(fallback_port)
-            )
-            lr_host = "127.0.0.1"
-            lr_port = fallback_port
-            lightrag_url = "http://" + lr_host + ":" + str(lr_port)
-            app_env["LIGHTRAG_URL"] = lightrag_url
+    try:
+        selected_url, changed = runtime_state.resolve_lightrag_endpoint(
+            lightrag_url, app_port, prefer_persisted=not bool(configured_lightrag_url)
+        )
+    except RuntimeError as exc:
+        error("无法为 LightRAG 选择可用端口", str(exc))
+        return progress_failed()
+    if changed:
+        print("  [修复] LightRAG 端口不可用或服务不健康，本次使用 " + selected_url)
+    lightrag_url = selected_url
+    lr_host, lr_port = runtime_state.split_url(lightrag_url)
+    app_env["LIGHTRAG_URL"] = lightrag_url
+    lightrag_env.setdefault("WORKING_DIR", str(RAG_STORAGE_DIR))
+    lightrag_env.setdefault("INPUT_DIR", str(LIGHTRAG_INPUT_DIR))
 
     python_exe = ROOT / ".venv" / "Scripts" / "python.exe"
     uvicorn_exe = ROOT / ".venv" / "Scripts" / "uvicorn.exe"
@@ -681,7 +694,18 @@ def main() -> int:
         print("  来自设置页的配置将注入 LightRAG：")
         for env_name, env_value in user_settings.mask_env(lightrag_env).items():
             print("    " + env_name + " = " + env_value)
-    if port_open(lr_host, lr_port):
+    lightrag_env_file = lightrag_home / ".env"
+    if not lightrag_env_file.is_file():
+        official_example = lightrag_home / "env.example"
+        if official_example.is_file():
+            shutil.copy2(official_example, lightrag_env_file)
+            print("  [修复] LightRAG .env 缺失，已从官方 env.example 恢复")
+        else:
+            error("LightRAG 配置缺失", "请运行 setup.cmd 下载官方 env.example")
+            FAILED = True
+    if FAILED:
+        pass
+    elif port_open(lr_host, lr_port):
         skip("LightRAG（" + lr_host + ":" + str(lr_port) + "）")
     elif not lightrag_exe.is_file():
         error("找不到 lightrag-server", str(lightrag_exe))
@@ -821,7 +845,7 @@ def main() -> int:
         print("  停止服务：关闭聊天窗口 25 秒后会自动停止；也可双击桌面「停止本地知识库助手」")
         print("  启动日志：" + str(LOG_FILE))
     else:
-        print("  停止服务：双击项目根目录的 stop.bat")
+        print("  停止服务：双击项目根目录的 stop.cmd")
     print("")
 
     if FAILED:

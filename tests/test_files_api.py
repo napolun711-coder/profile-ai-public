@@ -83,7 +83,7 @@ class FilesFixture(unittest.TestCase):
             mock.patch.object(ingest, "KNOWLEDGE_DIR", self.knowledge),
             mock.patch.object(library, "KNOWLEDGE_DIR", self.knowledge),
             # 原件定位：根目录、各留档目录与路径白名单
-            mock.patch.object(origin, "BASE_DIR", self.root),
+            mock.patch.object(origin, "PROFILE_AI_HOME", self.root),
             mock.patch.object(origin, "DATA_DIR", self.data),
             mock.patch.object(origin, "ORIGINALS_DIR", self.originals),
             mock.patch.object(origin, "UPLOAD_DIR", self.uploads),

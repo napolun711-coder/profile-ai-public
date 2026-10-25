@@ -17,8 +17,6 @@
     status      只读查看端口 / 进程 / 启动记录，不做任何修改
     open        打开网页界面（服务没起时会提示先启动）
     backup      备份数据（scripts\\backup.ps1）
-    migrate     把知识库数据搬进项目（scripts\\migrate_data.py）
-    switch-vdb  切换到本地文件向量库（scripts\\switch_to_local_vdb.py）
     shortcut    创建 / 修复桌面与开始菜单快捷方式
 
 参数：
@@ -43,7 +41,7 @@ sys.path.insert(0, str(SCRIPTS))
 
 import lifecycle  # noqa: E402 - 注入 scripts 目录后导入（该目录不是包）
 
-COMMANDS = ("start", "stop", "restart", "status", "open", "backup", "migrate", "switch-vdb", "shortcut")
+COMMANDS = ("start", "stop", "restart", "status", "open", "backup", "shortcut")
 
 SILENT = "--silent" in sys.argv
 NO_PAUSE = "--no-pause" in sys.argv
@@ -85,7 +83,7 @@ def forward_flags(command: str) -> list:
     """把 appctl 的参数翻译成子脚本认识的参数（各脚本的约定不同）。"""
     if command == "backup":
         return ["-Silent"] if SILENT else []
-    if command in ("start", "stop", "restart", "migrate", "switch-vdb"):
+    if command in ("start", "stop", "restart"):
         flags = ["--silent"] if SILENT else []
         if command in ("start", "restart") and NO_PAUSE:
             flags.append("--no-pause")
@@ -166,7 +164,7 @@ def main(argv=None) -> int:
         return 2
     if not PYTHON.is_file():
         print("  找不到 Python 环境：" + str(PYTHON))
-        print("  请先双击项目根目录的 install_env.bat 完成环境安装。")
+        print("  请先双击项目根目录的 setup.cmd 完成安装。")
         return 3
 
     extras = extra_args(args)
@@ -188,10 +186,6 @@ def main(argv=None) -> int:
         code = python_script("start.py", "start", extras)
     elif command == "backup":
         code = powershell_script("backup.ps1", forward_flags("backup"))
-    elif command == "migrate":
-        code = python_script("migrate_data.py", "migrate", extras)
-    elif command == "switch-vdb":
-        code = python_script("switch_to_local_vdb.py", "switch-vdb", extras)
     else:  # shortcut
         code = powershell_script("install_shortcuts.ps1", extras)
 

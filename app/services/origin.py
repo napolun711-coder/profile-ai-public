@@ -31,11 +31,11 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 from urllib.parse import quote
 
 from app.core.paths import (
-    BASE_DIR,
     DATA_DIR,
     KNOWLEDGE_DIR,
     ORIGINALS_DIR,
     OUTPUT_DIR,
+    PROFILE_AI_HOME,
     UPLOAD_DIR,
 )
 from app.services import library as library_service
@@ -103,7 +103,7 @@ def safe_path(raw: Any) -> Optional[Path]:
         return None
     candidate = Path(text)
     if not candidate.is_absolute():
-        candidate = BASE_DIR / candidate
+        candidate = PROFILE_AI_HOME / candidate
     try:
         resolved = candidate.resolve()
     except OSError:                       # 路径里有非法字符 / 太长
@@ -125,7 +125,7 @@ def safe_path(raw: Any) -> Optional[Path]:
 def relative_path(path: Path) -> str:
     """项目内的相对路径（页面提示用；不在项目里就回绝对路径）。"""
     try:
-        return str(path.relative_to(BASE_DIR)).replace("\\", "/")
+        return str(path.relative_to(PROFILE_AI_HOME)).replace("\\", "/")
     except ValueError:
         return str(path)
 

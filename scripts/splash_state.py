@@ -28,10 +28,14 @@ import math
 import os
 import time
 from pathlib import Path
+import sys
 from typing import Any, Callable
 
 ROOT = Path(__file__).resolve().parents[1]
-STATE_FILE = ROOT / "logs" / "splash.json"
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from app.core.paths import LOG_DIR  # noqa: E402
+STATE_FILE = LOG_DIR / "splash.json"
 
 PHASE_RUNNING = "running"
 PHASE_DONE = "done"

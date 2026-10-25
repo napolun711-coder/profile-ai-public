@@ -25,6 +25,12 @@
     "type": "",
     "qdrant_url": ""
   },
+  "rag": {
+    "chunk_size": "",
+    "chunk_overlap": "",
+    "top_k": "",
+    "chunk_top_k": ""
+  },
   "graph": {
     "working_dir": "",
     "input_dir": ""

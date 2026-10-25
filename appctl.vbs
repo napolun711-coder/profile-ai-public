@@ -3,7 +3,7 @@
 '  Usage : wscript.exe appctl.vbs <command> [options]
 '          double-click this file  =  "start"
 '  Command: start | stop | restart | status | open |
-'           backup | migrate | switch-vdb | shortcut
+'           backup | shortcut
 '  Logs   : logs\start.log , logs\stop.log , logs\<task>.log
 '  Notes  : a message box appears ONLY when something fails.
 '           Want to watch the progress?  Use appctl.bat instead.
@@ -32,7 +32,7 @@ For i = 1 To WScript.Arguments.Count - 1
 Next
 
 If Not fso.FileExists(py) Then
-    MsgBox "Python environment not found:" & vbCrLf & py & vbCrLf & vbCrLf & "Run install_env.bat first.", 16, "Profile AI Assistant"
+    MsgBox "Python environment not found:" & vbCrLf & py & vbCrLf & vbCrLf & "Run setup.cmd first.", 16, "Profile AI Assistant"
     WScript.Quit 3
 End If
 

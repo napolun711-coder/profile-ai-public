@@ -63,7 +63,7 @@ class InboxFixture(unittest.TestCase):
             mock.patch.object(inbox, "WATCH_DIR", self.watch),
             mock.patch.object(inbox, "WATCH_INDEX", self.index),
             mock.patch.object(inbox, "get_settings", return_value=self.settings),
-            mock.patch.object(origin, "BASE_DIR", self.root),
+            mock.patch.object(origin, "PROFILE_AI_HOME", self.root),
             mock.patch.object(ingest, "PARSED_DIR", self.parsed),
             mock.patch.object(ingest, "KNOWLEDGE_DIR", self.knowledge),
             mock.patch.object(ingest, "enqueue", self.enqueued.append),

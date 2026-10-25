@@ -1,6 +1,7 @@
 """用户可改配置（Phase 4.2）。
 
-单一配置源：config/user-settings.json（项目内、不入库）。
+单一用户配置源：%LOCALAPPDATA%/ProfileAI/config/user-settings.json。
+  仓库内的 config/user-settings.example.json 只提供默认结构。
 - 网页设置页（app/static/settings.html）通过 app/routers/settings.py 读写本文件；
 - 启动器 scripts/start.py 读取本文件，把值作为环境变量注入 LightRAG 与应用子进程
   （LightRAG 使用 load_dotenv(override=False)，环境变量优先，因此无需改动它的 .env）。
@@ -20,11 +21,17 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 from app.core import model_policy
-from app.core.paths import BASE_DIR
+from app.core.paths import (
+    BASE_DIR,
+    CONFIG_DIR as PROFILE_CONFIG_DIR,
+    EXAMPLE_SETTINGS_FILE,
+    LIGHTRAG_HOME,
+    PROFILE_AI_HOME,
+)
 
-CONFIG_DIR = BASE_DIR / "config"
+CONFIG_DIR = PROFILE_CONFIG_DIR
 SETTINGS_FILE = CONFIG_DIR / "user-settings.json"
-EXAMPLE_FILE = CONFIG_DIR / "user-settings.example.json"
+EXAMPLE_FILE = EXAMPLE_SETTINGS_FILE
 BACKUP_FILE = CONFIG_DIR / "user-settings.json.bak"
 
 VERSION = 1
@@ -34,21 +41,22 @@ DEFAULTS: Dict[str, Any] = {
     "version": VERSION,
     "updated_at": "",
     "llm": {
-        "binding": model_policy.DEEPSEEK_BINDING,
-        "model": model_policy.DEEPSEEK_MODEL,
-        "host": model_policy.DEEPSEEK_BASE_URL,
+        "binding": model_policy.DEFAULT_LLM_BINDING,
+        "model": model_policy.DEFAULT_LLM_MODEL,
+        "host": model_policy.DEFAULT_LLM_BASE_URL,
         "api_key": "",
     },
     "embedding": {
-        "binding": model_policy.EMBEDDING_BINDING,
-        "model": model_policy.EMBEDDING_MODEL,
-        "host": model_policy.EMBEDDING_BASE_URL,
+        "binding": model_policy.DEFAULT_EMBEDDING_BINDING,
+        "model": model_policy.DEFAULT_EMBEDDING_MODEL,
+        "host": model_policy.DEFAULT_EMBEDDING_BASE_URL,
         "api_key": "",
         "dim": "",
         "send_dim": "",
     },
     "rerank": {"binding": "", "model": "", "host": "", "api_key": ""},
     "vector_store": {"type": "", "qdrant_url": ""},
+    "rag": {"chunk_size": "", "chunk_overlap": "", "top_k": "", "chunk_top_k": ""},
     "graph": {"working_dir": "", "input_dir": ""},
     "paths": {"lightrag_home": ""},
     # P2G：问答技能路由（留空 = 跟随 .env / 代码默认值 off；可填 off / on）
@@ -57,7 +65,7 @@ DEFAULTS: Dict[str, Any] = {
         "allowed_extensions": "",
         "log_level": "",
         "skill_routing": "",
-        # 本机 LLM 已全局禁用，固定走 LightRAG 上游（其 LLM 固定 DeepSeek）。
+        # LightRAG 负责生成；本机独立 LLM 生成仍保持关闭。
         "generation_mode": model_policy.GENERATION_MODE,
     },
     # Phase 15：入库确认门（每个文件都要先确认一次才进知识库）
@@ -112,6 +120,10 @@ KEY_ENV_MAP: Dict[Tuple[str, str], str] = {
     ("rerank", "model"): "RERANK_MODEL",
     ("rerank", "host"): "RERANK_BINDING_HOST",
     ("rerank", "api_key"): "RERANK_BINDING_API_KEY",
+    ("rag", "chunk_size"): "CHUNK_SIZE",
+    ("rag", "chunk_overlap"): "CHUNK_OVERLAP_SIZE",
+    ("rag", "top_k"): "TOP_K",
+    ("rag", "chunk_top_k"): "CHUNK_TOP_K",
     ("graph", "working_dir"): "WORKING_DIR",
     ("graph", "input_dir"): "INPUT_DIR",
 }
@@ -125,6 +137,8 @@ APP_ENV_MAP: Dict[Tuple[str, str], str] = {
     ("app", "skill_routing"): "SKILL_ROUTING",
     # P3B：回答生成方式（保存后重启生效；默认空 = 不注入 = 代码默认 upstream）
     ("app", "generation_mode"): "GENERATION_MODE",
+    ("rag", "top_k"): "LIGHTRAG_TOP_K",
+    ("rag", "chunk_top_k"): "LIGHTRAG_CHUNK_TOP_K",
     # Phase 9：质量门（Phase 18 起 enabled 已失效，仅为兼容旧配置文件保留映射）
     ("quality", "profile"): "QUALITY_PROFILE",
     ("quality", "enabled"): "QUALITY_ENABLED",
@@ -181,6 +195,10 @@ NUMERIC_KEYS: Tuple[Tuple[str, str], ...] = (
     ("quality", "max_garbled_ratio"),
     ("quality", "max_repeat_ratio"),
     ("ocr", "max_file_mb"),
+    ("rag", "chunk_size"),
+    ("rag", "chunk_overlap"),
+    ("rag", "top_k"),
+    ("rag", "chunk_top_k"),
     # Phase 15：待确认作业保留时长（小时）
     ("ingest", "ttl_hours"),
     # Phase 16：文件夹轮询间隔（秒）
@@ -220,6 +238,10 @@ ENV_LABELS: Dict[Tuple[str, str], str] = {
     ("inbox", "enabled"): "文件夹轮询开关",
     ("inbox", "poll_seconds"): "文件夹轮询间隔（秒）",
     ("inbox", "confirm"): "文件夹入库确认方式",
+    ("rag", "chunk_size"): "分块大小",
+    ("rag", "chunk_overlap"): "分块重叠",
+    ("rag", "top_k"): "实体/关系召回数",
+    ("rag", "chunk_top_k"): "文本片段召回数",
 }
 
 ALLOWED_LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR")
@@ -242,20 +264,10 @@ def _finalize(data: Dict[str, Any]) -> Dict[str, Any]:
     section = data.get("embedding")
     if isinstance(section, dict) and isinstance(section.get("send_dim"), bool):
         section["send_dim"] = ""
-    for key, value in (
-        ("binding", model_policy.DEEPSEEK_BINDING),
-        ("model", model_policy.DEEPSEEK_MODEL),
-        ("host", model_policy.DEEPSEEK_BASE_URL),
-    ):
-        data.setdefault("llm", {})[key] = value
-    for key, value in (
-        ("binding", model_policy.EMBEDDING_BINDING),
-        ("model", model_policy.EMBEDDING_MODEL),
-        ("host", model_policy.EMBEDDING_BASE_URL),
-        ("api_key", ""),
-    ):
-        data.setdefault("embedding", {})[key] = value
-    data.setdefault("app", {})["generation_mode"] = model_policy.GENERATION_MODE
+    data.setdefault("llm", {})
+    data.setdefault("embedding", {})
+    data.setdefault("rag", {})
+    data.setdefault("app", {})
     return data
 
 
@@ -378,29 +390,6 @@ def validate_and_merge(current: Dict[str, Any], incoming: Dict[str, Any]):
                     )
                     lowered = model_policy.GENERATION_MODE
                 text = lowered
-            if (group, key) in (
-                ("llm", "binding"),
-                ("llm", "model"),
-                ("llm", "host"),
-                ("embedding", "binding"),
-                ("embedding", "model"),
-                ("embedding", "host"),
-            ):
-                expected = {
-                    ("llm", "binding"): model_policy.DEEPSEEK_BINDING,
-                    ("llm", "model"): model_policy.DEEPSEEK_MODEL,
-                    ("llm", "host"): model_policy.DEEPSEEK_BASE_URL,
-                    ("embedding", "binding"): model_policy.EMBEDDING_BINDING,
-                    ("embedding", "model"): model_policy.EMBEDDING_MODEL,
-                    ("embedding", "host"): model_policy.EMBEDDING_BASE_URL,
-                }[(group, key)]
-                if text and text != expected:
-                    errors.append(
-                        f"{ENV_LABELS.get((group, key), key)} 已锁定为 {expected}"
-                    )
-                text = expected
-            if (group, key) == ("embedding", "api_key"):
-                text = ""
             if (group, key) in NUMERIC_KEYS and text:
                 if not text.replace(".", "", 1).isdigit():
                     errors.append(f"{ENV_LABELS.get((group, key), key)} 必须是数字")
@@ -471,8 +460,9 @@ def lightrag_home(data: Dict[str, Any]) -> Path:
         data.get("paths", {}).get("lightrag_home")
     )
     if not value:
-        value = str(BASE_DIR / "lightrag") if (BASE_DIR / "lightrag").is_dir() else "./lightrag"
-    return Path(value)
+        return LIGHTRAG_HOME
+    path = Path(value).expanduser()
+    return path if path.is_absolute() else PROFILE_AI_HOME / path
 
 
 def effective_lightrag_env(data: Dict[str, Any]) -> Dict[str, str]:
@@ -493,15 +483,7 @@ def to_env(data: Dict[str, Any], target: str = "lightrag") -> Dict[str, str]:
         text = _normalize_scalar(value)
         if text:
             env[env_name] = text
-    if target == "lightrag":
-        env["LLM_BINDING"] = model_policy.DEEPSEEK_BINDING
-        env["LLM_MODEL"] = model_policy.DEEPSEEK_MODEL
-        env["LLM_BINDING_HOST"] = model_policy.DEEPSEEK_BASE_URL
-        env["EMBEDDING_BINDING"] = model_policy.EMBEDDING_BINDING
-        env["EMBEDDING_MODEL"] = model_policy.EMBEDDING_MODEL
-        env["EMBEDDING_BINDING_HOST"] = model_policy.EMBEDDING_BASE_URL
-        env.pop("EMBEDDING_BINDING_API_KEY", None)
-    else:
+    if target == "app":
         env["GENERATION_MODE"] = model_policy.GENERATION_MODE
     if target != "app":
         store_type = _normalize_scalar(data.get("vector_store", {}).get("type")).lower()

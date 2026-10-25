@@ -1,29 +1,34 @@
-"""项目级模型硬规则。
+"""Default model examples.
 
-LLM 一律使用 DeepSeek 的 OpenAI-compatible API；
-本机 Ollama 只允许提供 RAG 的 bge-m3 嵌入，不允许本机 LLM 生成。
+These are editable defaults, not hard-coded policy. Users can choose any provider and
+model supported by LightRAG from the settings page.
 """
 
 from __future__ import annotations
 
-DEEPSEEK_BINDING = "openai"
-DEEPSEEK_BASE_URL = "https://api.deepseek.com"
-DEEPSEEK_MODEL = "deepseek-chat"
+DEFAULT_LLM_BINDING = "openai"
+DEFAULT_LLM_BASE_URL = "https://api.deepseek.com"
+DEFAULT_LLM_MODEL = "deepseek-chat"
 
-EMBEDDING_BINDING = "ollama"
-EMBEDDING_BASE_URL = "http://localhost:11434"
-EMBEDDING_MODEL = "bge-m3:latest"
+DEFAULT_EMBEDDING_BINDING = "ollama"
+DEFAULT_EMBEDDING_BASE_URL = "http://localhost:11434"
+DEFAULT_EMBEDDING_MODEL = "bge-m3:latest"
 
 LOCAL_LLM_ALLOWED = False
 GENERATION_MODE = "upstream"
 
+# Compatibility aliases for imports that still use the old names.
+DEEPSEEK_BINDING = DEFAULT_LLM_BINDING
+DEEPSEEK_BASE_URL = DEFAULT_LLM_BASE_URL
+DEEPSEEK_MODEL = DEFAULT_LLM_MODEL
+EMBEDDING_BINDING = DEFAULT_EMBEDDING_BINDING
+EMBEDDING_BASE_URL = DEFAULT_EMBEDDING_BASE_URL
+EMBEDDING_MODEL = DEFAULT_EMBEDDING_MODEL
+
 __all__ = [
-    "DEEPSEEK_BASE_URL",
-    "DEEPSEEK_BINDING",
-    "DEEPSEEK_MODEL",
-    "EMBEDDING_BASE_URL",
-    "EMBEDDING_BINDING",
-    "EMBEDDING_MODEL",
-    "GENERATION_MODE",
-    "LOCAL_LLM_ALLOWED",
+    "DEEPSEEK_BASE_URL", "DEEPSEEK_BINDING", "DEEPSEEK_MODEL",
+    "DEFAULT_EMBEDDING_BASE_URL", "DEFAULT_EMBEDDING_BINDING", "DEFAULT_EMBEDDING_MODEL",
+    "DEFAULT_LLM_BASE_URL", "DEFAULT_LLM_BINDING", "DEFAULT_LLM_MODEL",
+    "EMBEDDING_BASE_URL", "EMBEDDING_BINDING", "EMBEDDING_MODEL",
+    "GENERATION_MODE", "LOCAL_LLM_ALLOWED",
 ]

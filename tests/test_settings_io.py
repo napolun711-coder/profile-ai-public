@@ -31,7 +31,7 @@ class IsolatedConfigMixin:
 class DefaultsTests(IsolatedConfigMixin, unittest.TestCase):
     def test_new_groups_exist_and_default_to_empty(self) -> None:
         """留空 = 不注入（沿用 .env / 内置默认值），避免"打开设置页就把 .env 覆盖掉"。"""
-        for group in ("quality", "ocr"):
+        for group in ("quality", "ocr", "rag"):
             with self.subTest(group=group):
                 section = user_settings.DEFAULTS[group]
                 self.assertTrue(section)
@@ -42,6 +42,7 @@ class DefaultsTests(IsolatedConfigMixin, unittest.TestCase):
 
         self.assertIn("quality", data)
         self.assertIn("ocr", data)
+        self.assertIn("rag", data)
         self.assertEqual(data["ocr"]["token"], "")
 
 

@@ -1,4 +1,4 @@
-# 注册每日 M6 备份任务（默认 03:17，避开整点）。
+﻿# 注册每日 M6 备份任务（默认 03:17，避开整点）。
 param(
     [string]$Time = "03:17",
     [string]$TaskName = "profile-ai-M6-backup"

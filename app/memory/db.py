@@ -17,7 +17,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Dict, Iterator, Optional
 
-from app.core.paths import BASE_DIR, MEMORY_DIR
+from app.core.paths import MEMORY_DIR, PROFILE_AI_HOME
 
 logger = logging.getLogger(__name__)
 
@@ -27,13 +27,13 @@ SCHEMA_VERSION = 5
 
 
 def resolve_db_path(value: str = "") -> Path:
-    """把配置值收敛成绝对路径；空值 = data/memory/profile-ai.db。"""
+    """Resolve a DB path; empty means <PROFILE_AI_HOME>/data/memory/profile-ai.db."""
     text = str(value or "").strip()
     if not text:
         return DEFAULT_DB_PATH
     path = Path(text).expanduser()
     if not path.is_absolute():
-        path = BASE_DIR / path
+        path = PROFILE_AI_HOME / path
     return path
 
 

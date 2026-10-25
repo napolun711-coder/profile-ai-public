@@ -15,7 +15,7 @@ from fastapi.staticfiles import StaticFiles
 from app.core.config import get_settings
 from app.core.errors import register_exception_handlers
 from app.core.logging import setup_logging
-from app.core.paths import STATIC_DIR
+from app.core.paths import STATIC_DIR, ensure_directories
 from app.routers import all_routers
 from app.services import inbox as inbox_service
 from app.services import ingest as ingest_service
@@ -77,6 +77,7 @@ async def lifespan(app: FastAPI):
        · 只在启动时拉一次（幂等）；关闭服务时停掉它；
        · 起不来（目录不可写等）只记日志，绝不让服务起不来 —— 网页上传仍然可用。
     """
+    ensure_directories()
     try:
         archived = await asyncio.to_thread(ingest_service.archive_expired_reviews)
         if archived:

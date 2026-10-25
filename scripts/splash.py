@@ -44,7 +44,10 @@ if str(HERE) not in sys.path:
 import splash_state  # noqa: E402  （同目录模块，必须在上面的 sys.path 处理之后导入）
 
 ROOT = HERE.parent
-LOGS = ROOT / "logs"
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from app.core.paths import LOG_DIR  # noqa: E402
+LOGS = LOG_DIR
 ICON_FILE = ROOT / "static" / "app.ico"
 
 # ---- 设计尺寸（逻辑像素；实际会按系统 DPI 缩放，见 Splash.build）----

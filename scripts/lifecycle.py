@@ -30,12 +30,18 @@ import json
 import os
 import socket
 import subprocess
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Tuple
 
 ROOT = Path(__file__).resolve().parents[1]
-LOGS = ROOT / "logs"
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from app.core.paths import LIGHTRAG_HOME, LOG_DIR  # noqa: E402
+from app.core.runtime import load_runtime, split_url  # noqa: E402
+
+LOGS = LOG_DIR
 
 # 允许停止的进程名（与 Phase 4.1 一致；不在名单内一律不动）
 ALLOWED_NAMES = ("uvicorn.exe", "python.exe", "lightrag-server.exe", "qdrant.exe")
@@ -55,7 +61,7 @@ STOP_LOG = LOGS / "stop.log"
 STOP_LOG_MAX_BYTES = 512 * 1024
 
 DEFAULT_APP_PORT = 8100
-DEFAULT_LIGHTRAG_PORT = 9621
+DEFAULT_LIGHTRAG_PORT = 9961
 DEFAULT_QDRANT_PORT = 6333
 DEFAULT_OLLAMA_PORT = 11434
 
@@ -207,9 +213,16 @@ def running_app_port(env: Optional[Dict[str, str]] = None) -> int:
 
 
 def lightrag_port(env: Optional[Dict[str, str]] = None) -> int:
-    """知识库端口：从 LIGHTRAG_URL 里取。"""
+    """知识库端口：显式 LIGHTRAG_URL 优先，否则使用持久化实际端口。"""
     values = env if env is not None else read_env()
-    return port_from_url(values.get("LIGHTRAG_URL", ""), DEFAULT_LIGHTRAG_PORT)
+    configured = str(values.get("LIGHTRAG_URL", "") or "").strip()
+    if configured:
+        return port_from_url(configured, DEFAULT_LIGHTRAG_PORT)
+    if env is None:
+        persisted = str(load_runtime().get("lightrag_url") or "").strip()
+        if persisted:
+            return split_url(persisted, DEFAULT_LIGHTRAG_PORT)[1]
+    return DEFAULT_LIGHTRAG_PORT
 
 
 def qdrant_port(env: Optional[Dict[str, str]] = None) -> int:
@@ -522,7 +535,7 @@ def lightrag_hints(env: Optional[Dict[str, str]] = None) -> List[str]:
     """判断「哪个 python.exe 才是知识库」用的线索（命令行里出现任意一条即算）。"""
     values = env if env is not None else read_env()
     candidates = [
-        str(ROOT / "lightrag"),                 # 项目内自带的 LightRAG
+        str(LIGHTRAG_HOME),                    # 用户数据目录中的 LightRAG
         values.get("LIGHTRAG_HOME", "").strip(),  # .env 里配置的安装目录
         "lightrag/",                          # 历史默认位置
         "lightrag-server",

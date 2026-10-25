@@ -1,4 +1,4 @@
-# M6 每日备份包装：供 Windows 任务计划程序调用。
+﻿# M6 每日备份包装：供 Windows 任务计划程序调用。
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 $logDir = Join-Path $root "logs"
