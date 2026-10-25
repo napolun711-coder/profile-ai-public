@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.2 - 2026-10-25
+
+- Fix first-start false failure at the launcher's 92% progress ceiling
+- Use a dependency-free `/health/live` readiness probe and verify the app identity
+- Move inbox, archive, memory, worker, and local-model startup maintenance off the HTTP critical path
+- Detect an exited app process immediately instead of waiting for the full timeout
+- Raise the app readiness timeout to 180 seconds and allow `APP_READY_TIMEOUT` overrides
+- Write `startup-diagnostic.txt` with process state, port listeners, and relevant log tails on failure
+
 ## 0.5.1 - 2026-10-25
 
 - Fix uv not being recognized after installation on a clean Windows machine

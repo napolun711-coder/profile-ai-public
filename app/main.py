@@ -3,8 +3,8 @@ Phase 15 增加启动时的「待确认作业」超时归档；Phase 16 增加�
 
 from __future__ import annotations
 
-import asyncio
 import logging
+import threading
 import time
 from contextlib import asynccontextmanager
 
@@ -60,40 +60,52 @@ def _warn_if_local_unavailable() -> None:
         )
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """启动/关闭钩子（Phase 15 / Phase 16）。
-
-    启动时做两件事：
-
-    1. 把「等待用户确认入库」超过 `PENDING_REVIEW_TTL_HOURS`（默认 24 小时）的作业
-       归档为「已跳过」。确认门是停下来等人的状态，没人答复的作业会一直占着目录、
-       下次打开网页看到一堆来路不明的文件；归档只是不入库（原件与解析结果都留着），
-       用户随时可以「仍要入库」。
-       · 放在线程里跑：要读一批 result.json，别拖住事件循环（失败也只记日志，
-         绝不能因为归档出问题就让服务起不来）；
-       · 重启即重放：每次启动都扫一遍，所以不存在"只归档一次"的漏网之鱼。
-
-    2. 拉起 `data\\inbox\\` 的轮询线程（Phase 16，`INBOX_ENABLED` 控制）。
-       · 只在启动时拉一次（幂等）；关闭服务时停掉它；
-       · 起不来（目录不可写等）只记日志，绝不让服务起不来 —— 网页上传仍然可用。
-    """
-    ensure_directories()
+def _timed_startup_step(name: str, action) -> None:
+    """运行一个可降级的启动维护步骤，并记录耗时。"""
+    started = time.perf_counter()
     try:
-        archived = await asyncio.to_thread(ingest_service.archive_expired_reviews)
+        action()
+    except Exception:  # noqa: BLE001 - 维护任务失败不能阻止应用接收请求
+        LOGGER.exception("启动维护失败（已降级）：%s", name)
+    else:
+        LOGGER.info(
+            "启动维护完成：%s（%.0f ms）",
+            name,
+            (time.perf_counter() - started) * 1000,
+        )
+
+
+def _startup_maintenance(stop: threading.Event) -> None:
+    """执行不参与 HTTP 就绪判定的维护任务。
+
+    FastAPI 只有在 lifespan 让出控制权后才会接收请求。收件箱扫描、历史归档、
+    记忆库修复和模型探测都可以降级，不能因为磁盘、杀毒扫描或外部服务变慢而让
+    网页端口迟迟不开放。这里放在独立 daemon 线程中执行，主应用立即就绪。
+    """
+    LOGGER.info("应用 HTTP 已就绪；后台维护开始")
+    if stop.is_set():
+        return
+
+    def archive_expired() -> None:
+        archived = ingest_service.archive_expired_reviews()
         if archived:
             LOGGER.info("启动归档：%d 个等待确认超时的作业已标记为跳过", len(archived))
-    except Exception:  # noqa: BLE001 - 归档失败不影响服务启动
-        LOGGER.exception("启动归档待确认作业失败（忽略，不影响服务启动）")
 
-    try:
+    _timed_startup_step("归档超时待确认作业", archive_expired)
+
+    if stop.is_set():
+        return
+
+    def start_inbox() -> None:
         if inbox_service.start():
             LOGGER.info("文件夹轮询已启动（收件箱：data\\inbox）")
-    except Exception:  # noqa: BLE001 - 轮询起不来不影响其它功能
-        LOGGER.exception("文件夹轮询启动失败（忽略；可稍后到「文件管理」页手动扫描）")
 
-    # M1：对话持久化。关闭时不建库；初始化失败只告警，聊天继续（不落盘）。
-    try:
+    _timed_startup_step("启动文件夹轮询", start_inbox)
+
+    if stop.is_set():
+        return
+
+    def initialize_memory() -> None:
         from app.memory import runtime as memory_runtime
 
         if memory_runtime.initialize():
@@ -106,39 +118,56 @@ async def lifespan(app: FastAPI):
                 "对话持久化初始化失败，已降级为不落盘：%s",
                 memory_runtime.error() or "unknown",
             )
-    except Exception:  # noqa: BLE001 - 记忆库失败不能阻止服务启动
-        LOGGER.exception("对话持久化初始化异常（忽略，聊天继续）")
 
-    # M3：记忆任务 worker。三个开关全开才真正启动；失败不影响服务。
-    try:
+    _timed_startup_step("初始化对话持久化", initialize_memory)
+
+    if stop.is_set():
+        return
+
+    def start_memory_worker() -> None:
         from app.memory.extract import register_extraction_handler
         from app.memory.worker import get_worker
 
         worker = get_worker()
         register_extraction_handler(worker)
         worker.start()
-    except Exception:  # noqa: BLE001 - worker 起不来不能阻止服务启动
-        LOGGER.exception("记忆 worker 启动失败（忽略）")
 
-    # P3C.3：本机模式自检（只告警，不改模式、不阻塞启动）。
+    _timed_startup_step("启动记忆 worker", start_memory_worker)
+
+    if stop.is_set():
+        return
+    _timed_startup_step("本机生成自检", _warn_if_local_unavailable)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """快速开放 HTTP，再在后台完成可降级的维护任务。"""
+    ensure_directories()
+    stop = threading.Event()
+    maintenance = threading.Thread(
+        target=_startup_maintenance,
+        args=(stop,),
+        name="startup-maintenance",
+        daemon=True,
+    )
+    maintenance.start()
+
     try:
-        await asyncio.to_thread(_warn_if_local_unavailable)
-    except Exception:  # noqa: BLE001 - 理论不可达；自检绝不能拦住启动
-        LOGGER.exception("本机生成自检线程失败（忽略）")
+        yield
+    finally:
+        stop.set()
+        maintenance.join(timeout=2.0)
+        try:
+            inbox_service.stop()
+        except Exception:  # noqa: BLE001 - 退出流程不能被异常打断
+            LOGGER.exception("文件夹轮询停止时出错（忽略）")
 
-    yield
+        try:
+            from app.memory.worker import get_worker
 
-    try:
-        inbox_service.stop()
-    except Exception:  # noqa: BLE001 - 退出流程不能被异常打断
-        LOGGER.exception("文件夹轮询停止时出错（忽略）")
-
-    try:
-        from app.memory.worker import get_worker
-
-        get_worker().stop()
-    except Exception:  # noqa: BLE001 - 退出流程不能被异常打断
-        LOGGER.exception("记忆 worker 停止时出错（忽略）")
+            get_worker().stop()
+        except Exception:  # noqa: BLE001 - 退出流程不能被异常打断
+            LOGGER.exception("记忆 worker 停止时出错（忽略）")
 
 
 def create_app() -> FastAPI:

@@ -5,6 +5,7 @@ GET /graph   返回 LightRAG 地址（前端据此在本页嵌「知识图谱」
              · url   = 浏览器可打开的 LightRAG 基地址
              · webui = 可直接 iframe 的 WebUI 地址（知识图谱是它 knowledge-graph 标签里的视图）
              两者都按请求的 Host 改写，避免 docker 的 host.docker.internal / 手机上的 127.0.0.1
+GET /health/live  轻量存活探针：只证明应用已开始接收请求，不探测任何外部依赖
 GET /health  新增：聚合探活 LightRAG / Qdrant / Ollama
              本接口始终返回 200（存活探针语义），依赖状态体现在 JSON 里
 """
@@ -61,6 +62,15 @@ def graph(request: Request):
 
         lightrag_client.webui_url(host)
 
+    }
+
+
+@router.get("/health/live")
+def health_live():
+    """应用进程已就绪；供一键启动器和容器做快速存活检查。"""
+    return {
+        "app": "ok",
+        "status": "ready"
     }
 
 

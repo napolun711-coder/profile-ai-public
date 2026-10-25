@@ -1,6 +1,6 @@
 [project]
 name = "profile-ai"
-version = "0.5.1"
+version = "0.5.2"
 description = "本地知识库助手：本地资料库问答、资料分析与资料整理（FastAPI + LightRAG）"
 readme = "README.md"
 license = "MIT"

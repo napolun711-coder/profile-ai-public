@@ -11,12 +11,14 @@
 用法（前台调试）：双击 start.bat，逐步输出可见；
 用法（命令行）：.venv\\Scripts\\python.exe scripts\\start.py
 
-静默运行会把完整输出写入 logs/start.log；被拉起的服务自身不带窗口，输出分别写入
-logs/lightrag_console.txt 与 logs/app_console.txt；只有启动失败才弹出提示框。
+静默运行会把完整输出写入用户数据目录下的 logs/start.log；被拉起的服务自身不带窗口，
+输出分别写入 logs/lightrag_console.txt 与 logs/app_console.txt。启动失败时会额外生成
+logs/startup-diagnostic.txt，汇总进程状态、端口监听和相关日志末尾。
 
 可选参数：
   --skip-browser        不自动打开浏览器
   --ready-timeout 180   等待 LightRAG 就绪的最长秒数（默认 180）
+  --app-ready-timeout 180  等待本应用就绪的最长秒数（默认 180，可用 APP_READY_TIMEOUT 覆盖）
   --force               即使自检发现致命问题也继续启动
   --silent              静默模式：不等待回车，失败时弹 Windows 消息框
   --no-pause            结束时不等回车（由脚本或快捷方式调用时使用）
@@ -29,6 +31,7 @@ from __future__ import annotations
 
 import json
 import os
+import platform
 import shutil
 import socket
 import subprocess
@@ -76,6 +79,7 @@ QUOTE_CHARS = (chr(34), chr(39))
 # 静默模式（由 start_silent.vbs 传入 --silent）：没有控制台可看，排查全靠日志
 SILENT = "--silent" in sys.argv
 LOG_FILE = LOGS / "start.log"
+DIAGNOSTIC_FILE = LOGS / "startup-diagnostic.txt"
 
 # 启动进度窗（Phase 11）：本脚本只负责「写进度 + 拉起/关闭窗口」，窗口本身是独立进程。
 # 它崩了、被 Esc 关掉、被杀掉，都不会影响启动 —— 见 scripts\splash.py 顶部的说明。
@@ -251,29 +255,56 @@ def split_url(url: str, default_port: int):
 
 
 def wait_http(url: str, timeout_seconds: int, label: str, request_timeout: int = 3,
-              progress_range=None, detail: str = "") -> bool:
+              progress_range=None, detail: str = "", process=None, accept=None) -> bool:
     # 轮询直到 URL 可访问，或超时；request_timeout 是单次请求超时
     # （/health 在依赖不可用时要探测多个下游，可能耗时 4~6 秒，故可单独放宽）
     # progress_range=(起点%, 终点%)：等待期间让进度条「渐近爬升」，一直动但绝不到 100%
     # （真正就绪才写 100%，见 scripts\splash_state.py 的 Progress.creep）。
+    # process 与 accept 用于「本应用」：进程一退出立即失败；JSON 也必须确认是本应用。
     started = time.time()
     deadline = started + timeout_seconds
     tick = 0
     while time.time() < deadline:
+        if process is not None:
+            exit_code = process.poll()
+            if exit_code is not None:
+                print("  [失败] " + label + " 启动进程已退出（退出码 " + str(exit_code) + "）")
+                return False
         try:
             response = requests.get(url, timeout=request_timeout)
             if response.status_code < 500:
-                return True
+                if accept is None:
+                    return True
+                try:
+                    if accept(response):
+                        return True
+                except (AttributeError, TypeError, ValueError):
+                    pass
         except requests.RequestException:
             pass
         if progress_range and PROGRESS is not None:
+            elapsed = time.time() - started
+            wait_detail = detail
+            if elapsed >= 20:
+                wait_detail = (detail or (label + " 就绪中")) + \
+                    "（已等待 " + str(int(elapsed)) + " 秒）"
             PROGRESS.creep(progress_range[0], progress_range[1], time.time() - started,
-                           detail or (label + " 就绪中"))
+                           wait_detail)
         time.sleep(1.5)
         tick += 1
         if tick % 4 == 0:
-            print("         等待 " + label + " 就绪...")
+            print("         等待 " + label + " 就绪（" + str(int(time.time() - started)) +
+                  "/" + str(timeout_seconds) + " 秒）...")
     return False
+
+
+def app_live_ok(response) -> bool:
+    """只接受本应用的轻量存活响应，避免把端口上的其他服务当成已启动。"""
+    try:
+        payload = response.json()
+    except ValueError:
+        return False
+    return isinstance(payload, dict) and payload.get("app") == "ok"
 
 def tail_lines(path: Path, count: int):
     # 读取文件末尾若干非空行（用于展示启动失败原因）
@@ -302,6 +333,68 @@ def save_port(port: int) -> None:
     """
     LOGS.mkdir(parents=True, exist_ok=True)
     (LOGS / "app.port").write_text(str(port), encoding="ascii")
+
+
+def write_startup_diagnostic(app_port: int, process=None) -> Path:
+    """把启动失败现场写入一个可直接发送给维护者的文本文件。"""
+    lines = [
+        "ProfileAI 启动诊断",
+        "生成时间：" + time.strftime("%Y-%m-%d %H:%M:%S"),
+        "项目目录：" + str(ROOT),
+        "用户数据：" + str(PROFILE_AI_HOME),
+        "应用端口：" + str(app_port),
+        "系统：" + platform.platform(),
+        "Python：" + sys.version.replace("\n", " "),
+    ]
+    if process is not None:
+        exit_code = process.poll()
+        lines.extend([
+            "应用进程 PID：" + str(process.pid),
+            "应用进程状态：" + ("运行中" if exit_code is None else "已退出（退出码 " + str(exit_code) + "）"),
+        ])
+
+    runtime_file = PROFILE_AI_HOME / "config" / "runtime.json"
+    try:
+        runtime_text = runtime_file.read_text(encoding="utf-8").strip()
+    except OSError:
+        runtime_text = ""
+    lines.extend(["", "runtime.json：", runtime_text or "（不存在或不可读）"])
+
+    try:
+        netstat = subprocess.run(
+            ["netstat", "-ano", "-p", "tcp"],
+            capture_output=True,
+            timeout=10,
+            creationflags=no_window_flags(),
+        )
+        output = decode_console_bytes(netstat.stdout or b"")
+        listeners = [
+            line.strip() for line in output.splitlines()
+            if ":" + str(app_port) in line and "LISTENING" in line.upper()
+        ]
+    except (OSError, subprocess.SubprocessError):
+        listeners = []
+    lines.extend(["", "应用端口监听："])
+    lines.extend(listeners or ["（没有发现监听进程）"])
+
+    log_files = (
+        ("app_console.txt", LOGS / "app_console.txt", 80),
+        ("app.log", LOGS / "app.log", 80),
+        ("start.log", LOG_FILE, 80),
+        ("lightrag_console.txt", LOGS / "lightrag_console.txt", 40),
+    )
+    for label, path, count in log_files:
+        lines.extend(["", "===== " + label + "（末尾）====="])
+        recent = tail_lines(path, count)
+        lines.extend(recent or ["（无内容或文件不存在）"])
+
+    try:
+        LOGS.mkdir(parents=True, exist_ok=True)
+        DIAGNOSTIC_FILE.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        print("  启动诊断：" + str(DIAGNOSTIC_FILE))
+    except OSError as exc:
+        print("  [注意] 无法写入启动诊断：" + str(exc))
+    return DIAGNOSTIC_FILE
 
 
 def save_pid(name: str, pid: int) -> None:
@@ -503,7 +596,12 @@ def progress_failed() -> int:
     比不给提示还糟。弹消息框（notify_error）由 __main__ 在 main() 返回之后做。
     """
     if PROGRESS is not None and PROGRESS.enabled:
-        PROGRESS.fail("详情见 logs\\start.log")
+        detail = (
+            "诊断：" + str(DIAGNOSTIC_FILE)
+            if DIAGNOSTIC_FILE.is_file()
+            else "日志：" + str(LOG_FILE)
+        )
+        PROGRESS.fail(detail)
         time.sleep(1.5)
     close_splash(wait_seconds=1.0)
     return 3
@@ -525,6 +623,7 @@ def main() -> int:
     force = "--force" in sys.argv
     no_pause = "--no-pause" in sys.argv
     ready_timeout = 180
+    app_ready_timeout = 180
     if "--ready-timeout" in sys.argv:
         index = sys.argv.index("--ready-timeout")
         if index + 1 < len(sys.argv):
@@ -532,8 +631,21 @@ def main() -> int:
                 ready_timeout = int(sys.argv[index + 1])
             except ValueError:
                 pass
+    if "--app-ready-timeout" in sys.argv:
+        index = sys.argv.index("--app-ready-timeout")
+        if index + 1 < len(sys.argv):
+            try:
+                app_ready_timeout = int(sys.argv[index + 1])
+            except ValueError:
+                pass
 
     env = read_env(ROOT / ".env")
+    if "--app-ready-timeout" not in sys.argv:
+        try:
+            app_ready_timeout = int(cfg(env, "APP_READY_TIMEOUT", "180"))
+        except ValueError:
+            app_ready_timeout = 180
+    app_ready_timeout = max(30, min(900, app_ready_timeout))
 
     app_host = cfg(env, "APP_HOST", cfg(env, "HOST", "127.0.0.1"))
     app_port = int(cfg(env, "APP_PORT", cfg(env, "PORT", "8100")))
@@ -589,6 +701,7 @@ def main() -> int:
     browser_host = "127.0.0.1" if app_host in ("0.0.0.0", "") else app_host
     app_root = "http://" + browser_host + ":" + str(app_port)
     app_health = app_root + "/health"
+    app_live = app_root + "/health/live"
 
     print("")
     print("  ============================================================")
@@ -778,11 +891,18 @@ def main() -> int:
                 print("    " + env_name + " = " + env_value)
         process = spawn(str(uvicorn_exe), app_args, ROOT, "app", app_env)
         print("  本应用已启动（进程 " + str(process.pid) + "），正在等待就绪...")
-        if wait_http(app_root + "/", 90, "本应用", 10, progress_range=(70, 92),
-                     detail="5/5 启动本应用（网页界面）"):
+        if wait_http(app_live, app_ready_timeout, "本应用", 3, progress_range=(70, 92),
+                     detail="5/5 启动本应用（首次启动可能需要 1–3 分钟）",
+                     process=process, accept=app_live_ok):
             done("本应用（" + app_root + "）")
         else:
-            error("本应用在 60 秒内未就绪", "查看项目 logs 目录下的日志")
+            exit_code = process.poll()
+            if exit_code is None:
+                message = "本应用在 " + str(app_ready_timeout) + " 秒内未就绪"
+            else:
+                message = "本应用启动进程已退出（退出码 " + str(exit_code) + "）"
+            error(message, "诊断文件：" + str(DIAGNOSTIC_FILE))
+            write_startup_diagnostic(app_port, process)
             FAILED = True
 
     web_url = app_root + "/web"
@@ -876,8 +996,10 @@ if __name__ == "__main__":
         close_splash(wait_seconds=0.8)
     if CODE != 0:
         # 静默模式没有窗口可看：失败时弹一个明确的提示框，成功不打扰
+        detail_file = DIAGNOSTIC_FILE if DIAGNOSTIC_FILE.is_file() else LOG_FILE
         notify_error(
             "本地知识库助手 - 启动失败",
-            "服务未能正常启动（退出码 " + str(CODE) + "）。\n详情请看日志：\n" + str(LOG_FILE),
+            "服务未能正常启动（退出码 " + str(CODE) + "）。\n"
+            "请把下面的诊断文件发给维护者：\n" + str(detail_file),
         )
     sys.exit(CODE)
