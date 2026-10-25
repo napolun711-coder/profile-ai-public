@@ -7,16 +7,16 @@ config/*.bak
 config/mobile-tls/
 config/caddy-data/
 
-# Runtime data
-data/
-logs/
-output/
-backup/
-backups/
-knowledge/
-rag_storage/
-models/
-dist/
+# Runtime data (root only; do not hide source packages such as app/models/)
+/data/
+/logs/
+/output/
+/backup/
+/backups/
+/knowledge/
+/rag_storage/
+/models/
+/dist/
 *.log
 *.pid
 

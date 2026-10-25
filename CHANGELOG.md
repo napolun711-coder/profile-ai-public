@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.3 - 2026-10-25
+
+- Fix GitHub source archives missing the `app.models` package
+- Anchor ignored runtime directories to the repository root so source packages are never excluded
+- Fail `setup.cmd` immediately if the downloaded source package cannot import
+- Add an application import gate to CI
+
 ## 0.5.2 - 2026-10-25
 
 - Fix first-start false failure at the launcher's 92% progress ceiling

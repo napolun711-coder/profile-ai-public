@@ -198,6 +198,15 @@ try {
 } finally { Pop-Location }
 Write-OK '应用依赖已就绪'
 
+# 源码包缺失（例如被 .gitignore 误排除）时必须在安装阶段失败，不能等到启动。
+$appPython = Join-Path $root '.venv\Scripts\python.exe'
+Push-Location $root
+try {
+    & $appPython -c 'import app.main'
+    if ($LASTEXITCODE -ne 0) { throw '应用源码不完整或依赖导入失败，请重新下载完整项目' }
+} finally { Pop-Location }
+Write-OK '应用源码与依赖导入验证通过'
+
 Write-Step ('3/6 安装 LightRAG ' + $LightRagVersion)
 $versionFile = Join-Path $lightragHome 'installed-version.txt'
 $installedVersion = if (Test-Path -LiteralPath $versionFile) { (Get-Content -LiteralPath $versionFile -Raw).Trim() } else { '' }
