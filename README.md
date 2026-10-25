@@ -14,7 +14,7 @@ Windows 10/11：
 
 安装器会：
 
-- 安装或检查 uv
+- 安装或检查 uv；即使 winget 安装后 PATH 未刷新，也会自动使用绝对路径或官方安装包
 - 安装本应用依赖
 - 在 `%LOCALAPPDATA%\ProfileAI\backend\lightrag` 安装固定版本 LightRAG `1.5.6`
 - 下载 LightRAG 官方 `env.example` 作为默认 `.env`

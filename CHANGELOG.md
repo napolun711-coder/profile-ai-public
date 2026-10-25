@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.1 - 2026-10-25
+
+- Fix uv not being recognized after installation on a clean Windows machine
+- Locate uv by absolute path and fall back to the official Windows package when winget/PATH is unavailable
+- Add SHA256 verification and automatic user PATH registration for the fallback
+
 ## 0.5.0 - 2026-10-25
 
 - Clean-room open-source extraction
