@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="/static/access_gate.js"></script>
+<title>记忆管理</title>
+<style>
+:root{--bg:#f5f6f8;--panel:#fff;--text:#1f2328;--muted:#667085;--line:#d0d5dd;--brand:#2563eb;--soft:#eef2ff;--bad:#b42318;--ok:#067647;--warn:#b54708;--input:#fbfcfd}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1217;--panel:#171b22;--text:#e6e8eb;--muted:#98a2b3;--line:#2c3440;--brand:#7aa2ff;--soft:#1b2435;--bad:#f97066;--ok:#75e0a7;--warn:#fec84b;--input:#11161d}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.6 system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif}
+header{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:2}
+h1{font-size:17px;margin:0}header .grow{flex:1}
+button,select,input,textarea{font:inherit;color:var(--text);background:var(--input);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+button{cursor:pointer}button.primary{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:600}button.danger{color:var(--bad);border-color:var(--bad)}button:disabled{opacity:.5;cursor:not-allowed}
+main{max-width:1200px;margin:0 auto;padding:14px 18px 30px}
+.status{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}.chip{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:4px 9px;color:var(--muted);background:var(--panel)}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}.toolbar input{min-width:220px;flex:1}
+.layout{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:14px;align-items:start}
+.list{display:flex;flex-direction:column;gap:8px;max-height:74vh;overflow:auto}
+.card{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:9px 11px;cursor:pointer}.card:hover{border-color:var(--brand)}.card.sel{border-color:var(--brand);background:var(--soft)}
+.card .subject{font-weight:600;font-size:13px}.card .content{font-size:12.5px;color:var(--text);margin:4px 0;white-space:pre-wrap;word-break:break-word}.card .meta{font-size:11.5px;color:var(--muted);display:flex;gap:8px;flex-wrap:wrap}
+.badge{font-size:11px;border-radius:999px;padding:1px 7px;border:1px solid var(--line)}.badge.pending{color:var(--warn)}.badge.active{color:var(--ok)}.badge.conflicted{color:var(--bad)}.badge.deleted,.badge.superseded{color:var(--muted)}
+.detail{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:14px;min-height:300px}
+.detail h2{font-size:15px;margin:0 0 8px}.detail .muted{color:var(--muted);font-size:12px}
+.field{margin:10px 0}.field label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}.field input,.field textarea,.field select{width:100%}.field textarea{min-height:110px;resize:vertical}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.sources{border-top:1px dashed var(--line);margin-top:12px;padding-top:10px}.source{font-size:12px;background:var(--input);border:1px solid var(--line);border-radius:8px;padding:7px 9px;margin:6px 0;white-space:pre-wrap}
+.empty{color:var(--muted);font-size:12.5px}
+@media(max-width:850px){.layout{grid-template-columns:1fr}.list{max-height:40vh}main{padding:12px}header{padding:12px}.toolbar input{min-width:0}}
+</style>
+</head>
+<body>
+<header>
+  <h1>记忆管理</h1>
+  <span class="muted" id="mode">只读加载中…</span>
+  <span class="grow"></span>
+  <button id="refresh" class="primary" type="button">刷新</button>
+</header>
+<main>
+  <div class="status" id="status"></div>
+  <div class="toolbar">
+    <select id="statusFilter">
+      <option value="">全部状态</option>
+      <option value="pending">待确认 pending</option>
+      <option value="active">生效 active</option>
+      <option value="conflicted">冲突 conflicted</option>
+      <option value="superseded">已被替代 superseded</option>
+      <option value="deleted">已删除 deleted</option>
+    </select>
+    <select id="kindFilter">
+      <option value="">全部类型</option>
+      <option value="preference">偏好 preference</option>
+      <option value="goal">目标 goal</option>
+      <option value="fact">事实 fact</option>
+      <option value="constraint">约束 constraint</option>
+      <option value="decision">决定 decision</option>
+      <option value="habit">习惯 habit</option>
+      <option value="profile">画像 profile</option>
+      <option value="background">背景 background</option>
+    </select>
+    <input id="query" placeholder="搜索内容 / 主题词" maxlength="200">
+    <button id="search" class="primary" type="button">查询</button>
+    <button id="exportBtn" type="button">导出 JSON</button>
+    <label class="material-like" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--muted)">
+      导入 JSON
+      <input id="importFile" type="file" accept="application/json,.json" style="display:none">
+    </label>
+    <button id="clearBtn" class="danger" type="button">清空全部数据</button>
+  </div>
+  <div class="layout">
+    <section class="list" id="list"><div class="empty">加载中…</div></section>
+    <section class="detail" id="detail"><div class="empty">选择左侧一条记忆查看详情。</div></section>
+  </div>
+</main>
+<script>
+let state = { items: [], selected: null, status: null };
+const $ = function (id) { return document.getElementById(id); };
+function setToast(text, bad) { const n = $("mode"); if (n) { n.textContent = text || ""; n.style.color = bad ? "var(--bad)" : "var(--muted)"; } }
+async function api(path, options) {
+  const init = Object.assign({cache: "no-store"}, options || {});
+  let res;
+  try { res = await fetch(path, init); } catch (e) { return {ok: false, status: 0, data: null}; }
+  let data = null; try { data = await res.json(); } catch (e) { data = null; }
+  if (res.status === 401) {
+    const detail = data && data.detail;
+    if (detail && (detail.error === "device_auth_required" || detail.error === "chat_token_required")) {
+      location.replace(detail.pair_url || "/pair");
+    }
+  }
+  return {ok: res.ok, status: res.status, data: data};
+}
+function esc(value) { return String(value == null ? "" : value); }
+function badge(status) { return '<span class="badge ' + esc(status) + '">' + esc(status) + "</span>"; }
+function time(value) { if (!value) return ""; const d = new Date(value); return isNaN(d.getTime()) ? esc(value) : d.toLocaleString(); }
+async function loadStatus() {
+  const out = await api("/api/memory/status");
+  if (!out.ok || !out.data) { setToast("状态读取失败", true); return; }
+  state.status = out.data;
+  const s = out.data;
+  const workerRunning = s.worker_running !== undefined ? s.worker_running : s.worker;
+  $("status").innerHTML = [
+    "记忆 " + (s.memory_count || 0),
+    "待确认 " + (s.pending_memory_count || 0),
+    "任务队列 " + ((s.jobs && s.jobs.total) || 0),
+    "上下文注入 " + (s.context_enabled ? "开" : "关"),
+    "快记忆 " + (s.fast_memory ? "开" : "关"),
+    "自动提取 " + (s.auto_extract ? "开" : "关"),
+    "聊天资料集过滤 " + (s.chat_topic_filter ? "开" : "关"),
+    "worker " + (workerRunning ? "运行中" : "已停") +
+      (s.worker_configured && !workerRunning ? "（配置开）" : ""),
+  ].map(function (x) { return '<span class="chip">' + esc(x) + "</span>"; }).join("");
+  if (s.enabled === false) { setToast("记忆系统未启用（MEMORY_ENABLED=off）", true); }
+}
+async function loadItems() {
+  const params = new URLSearchParams({limit: "100"});
+  const st = $("statusFilter").value; if (st) params.set("status", st);
+  const kind = $("kindFilter").value; if (kind) params.set("kind", kind);
+  const q = $("query").value.trim(); if (q) params.set("q", q);
+  const out = await api("/api/memory/items?" + params.toString());
+  const list = $("list");
+  if (!out.ok || !out.data) { list.innerHTML = '<div class="empty">读取失败：' + esc(out.status) + "</div>"; return; }
+  state.items = out.data.items || [];
+  if (!out.data.enabled) { list.innerHTML = '<div class="empty">记忆系统未启用。</div>'; return; }
+  if (!state.items.length) { list.innerHTML = '<div class="empty">没有符合条件的记忆。</div>'; return; }
+  list.innerHTML = "";
+  state.items.forEach(function (item) {
+    const card = document.createElement("div");
+    card.className = "card" + (state.selected && state.selected.id === item.id ? " sel" : "");
+    card.innerHTML = '<div class="subject">' + esc(item.subject || "(无主题)") + " " + badge(item.status) + "</div>"
+      + '<div class="content">' + esc((item.content || "").slice(0, 220)) + "</div>"
+      + '<div class="meta">' + esc(item.kind) + " · " + esc(item.scope) + " · " + esc(item.sensitivity)
+      + " · 置信 " + esc(item.confidence) + " · " + esc(time(item.updated_at)) + "</div>";
+    card.addEventListener("click", function () { selectItem(item.id); });
+    list.appendChild(card);
+  });
+}
+async function selectItem(id) {
+  const out = await api("/api/memory/items/" + encodeURIComponent(id) + "?include_deleted=true");
+  if (!out.ok || !out.data) { setToast("读取记忆失败", true); return; }
+  const m = out.data.memory;
+  state.selected = m;
+  const src = await api("/api/memory/items/" + encodeURIComponent(id) + "/sources");
+  const ev = await api("/api/memory/items/" + encodeURIComponent(id) + "/events?limit=50");
+  renderDetail(m, src.data || {}, ev.data || {});
+  loadItems();
+}
+function renderDetail(m, sources, events) {
+  const box = $("detail");
+  const sourceHtml = (sources.items || []).length
+    ? sources.items.map(function (s) { return '<div class="source">' + esc(s.quote || "(无 quote)") + '<br><span class="muted">message ' + esc(s.message_id || "-") + " · session " + esc(s.session_id || "-") + "</span></div>"; }).join("")
+    : '<div class="empty">没有来源记录。</div>';
+  const eventHtml = (events.items || []).length
+    ? events.items.slice(0, 20).map(function (e) { return '<div class="source">' + esc(e.action) + " · v" + esc(e.version) + " · " + esc(e.actor) + " · " + esc(time(e.created_at)) + "</div>"; }).join("")
+    : '<div class="empty">没有事件记录。</div>';
+  box.innerHTML = '<h2>' + esc(m.subject || "(无主题)") + " " + badge(m.status) + "</h2>"
+    + '<div class="muted">' + esc(m.kind) + " · " + esc(m.scope) + " · " + esc(m.sensitivity) + " · " + esc(m.source_type)
+    + " · 置信 " + esc(m.confidence) + " · 重要度 " + esc(m.importance) + " · v" + esc(m.version) + "</div>"
+    + '<div class="field"><label>内容</label><textarea id="editContent">' + esc(m.content || "") + "</textarea></div>"
+    + '<div class="field"><label>主题词</label><input id="editSubject" value="' + esc(m.subject || "") + '"></div>'
+    + '<div class="field"><label>类型</label><select id="editKind">'
+    + ["preference","goal","fact","constraint","decision","habit","profile","background"].map(function (k) { return '<option value="' + k + '"' + (m.kind === k ? " selected" : "") + ">" + k + "</option>"; }).join("")
+    + '</select></div>'
+    + '<div class="actions">'
+    + '<button class="primary" id="save">保存修改</button>'
+    + (m.status === "pending" ? '<button id="confirm">确认</button><button id="reject">拒绝</button>' : "")
+    + (m.status === "deleted" ? '<button id="restore">恢复</button>' : '<button class="danger" id="del">删除</button>')
+    + '<button class="danger" id="purge">彻底忘记</button>'
+    + "</div>"
+    + '<div class="sources"><div class="muted">来源 quote</div>' + sourceHtml + '<div class="muted" style="margin-top:8px">事件</div>' + eventHtml + "</div>";
+  $("save").addEventListener("click", saveEdit);
+  if ($("confirm")) $("confirm").addEventListener("click", function () { action("confirm"); });
+  if ($("reject")) $("reject").addEventListener("click", function () { action("reject"); });
+  if ($("restore")) $("restore").addEventListener("click", function () { action("restore"); });
+  if ($("del")) $("del").addEventListener("click", function () { remove(false); });
+  $("purge").addEventListener("click", function () { remove(true); });
+}
+async function saveEdit() {
+  if (!state.selected) return;
+  const out = await api("/api/memory/items/" + encodeURIComponent(state.selected.id), {
+    method: "PATCH", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({content: $("editContent").value, subject: $("editSubject").value, kind: $("editKind").value}),
+  });
+  if (!out.ok) { setToast(out.status === 403 ? "写操作仅限本机；局域网只能查看" : "保存失败", true); return; }
+  setToast("已保存", false); await selectItem(state.selected.id); await loadStatus();
+}
+async function action(kind) {
+  if (!state.selected) return;
+  const out = await api("/api/memory/items/" + encodeURIComponent(state.selected.id) + "/" + kind, {method: "POST"});
+  if (!out.ok) { setToast("操作失败（" + out.status + "）", true); return; }
+  setToast("已" + kind, false); await selectItem(state.selected.id); await loadStatus();
+}
+async function remove(purge) {
+  if (!state.selected) return;
+  if (!window.confirm(purge ? "彻底删除不可恢复，确定吗？" : "删除这条记忆？")) return;
+  const out = await api("/api/memory/items/" + encodeURIComponent(state.selected.id) + "?purge=" + (purge ? "true" : "false"), {method: "DELETE"});
+  if (!out.ok) { setToast("删除失败（" + out.status + "）", true); return; }
+  state.selected = null; $("detail").innerHTML = '<div class="empty">已删除。选择左侧一条记忆查看详情。</div>';
+  await loadItems(); await loadStatus();
+}
+$("refresh").addEventListener("click", async function () { await loadStatus(); await loadItems(); });
+$("search").addEventListener("click", loadItems);
+$("query").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); loadItems(); } });
+$("statusFilter").addEventListener("change", loadItems);
+$("kindFilter").addEventListener("change", loadItems);
+async function memoryExport() {
+  const out = await api("/api/memory/export");
+  if (!out.ok || !out.data) {
+    setToast(out.status === 403 ? "导出仅限本机" : "导出失败", true);
+    return;
+  }
+  const blob = new Blob([JSON.stringify(out.data, null, 2)], {type: "application/json"});
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "memory-export-" + new Date().toISOString().slice(0, 10) + ".json";
+  document.body.appendChild(link); link.click(); link.remove();
+  setTimeout(function () { URL.revokeObjectURL(link.href); }, 1000);
+  setToast("已导出 " + (out.data.items || []).length + " 条记忆", false);
+}
+async function memoryImport(file) {
+  if (!file) return;
+  let payload = null;
+  try { payload = JSON.parse(await file.text()); }
+  catch (e) { setToast("导入文件不是合法 JSON", true); return; }
+  const out = await api("/api/memory/import", {
+    method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(payload),
+  });
+  if (!out.ok || !out.data) { setToast(out.status === 403 ? "导入仅限本机" : "导入失败", true); return; }
+  setToast("导入完成：新增 " + (out.data.imported || 0) + "，跳过 " + (out.data.skipped || 0)
+    + "，错误 " + (out.data.errors || 0), false);
+  await loadStatus(); await loadItems();
+}
+async function memoryClear() {
+  const entered = window.prompt("这会清空全部会话、消息、记忆、来源、事件与任务，不可恢复。\n请输入 CLEAR ALL 确认：", "");
+  if (String(entered || "").trim() !== "CLEAR ALL") { setToast("未确认，已取消", false); return; }
+  const out = await api("/api/memory/clear", {
+    method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({confirm: "CLEAR ALL", purge_backups: false}),
+  });
+  if (!out.ok || !out.data) { setToast(out.status === 403 ? "清空仅限本机" : "清空失败", true); return; }
+  state.selected = null; $("detail").innerHTML = '<div class="empty">已清空。</div>';
+  setToast("已清空全部数据（备份未删除）", false);
+  await loadStatus(); await loadItems();
+}
+$("exportBtn").addEventListener("click", memoryExport);
+$("importFile").addEventListener("change", function (event) {
+  memoryImport(event.target.files && event.target.files[0]);
+  event.target.value = "";
+});
+$("clearBtn").addEventListener("click", memoryClear);
+loadStatus(); loadItems();
+</script>
+<script src="/static/session.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>连接电脑 · 本地知识库助手</title>
+<style>
+:root{
+  --bg:#f5f7fb;--panel:#fff;--text:#182033;--muted:#65708a;--line:#dfe5ef;
+  --brand:#2563eb;--brand-soft:#e8efff;--ok:#178a5b;--bad:#c0392b;
+}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;
+  background:radial-gradient(circle at 50% 0,#e7efff,transparent 55%),var(--bg);
+  color:var(--text);font:15px/1.65 system-ui,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif}
+.card{width:min(460px,100%);background:var(--panel);border:1px solid var(--line);
+  border-radius:20px;padding:26px;box-shadow:0 20px 60px rgba(23,38,72,.12)}
+.mark{width:46px;height:46px;border-radius:14px;background:var(--brand-soft);color:var(--brand);
+  display:grid;place-items:center;font-size:23px;margin-bottom:15px}
+.mark.waiting{animation:breathe 2.2s ease-in-out infinite}
+@keyframes breathe{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(37,99,235,.08)}
+  50%{transform:scale(1.06);box-shadow:0 0 0 8px rgba(37,99,235,.08)}}
+h1{font-size:21px;line-height:1.3;margin:0 0 7px}
+p{margin:0 0 18px;color:var(--muted);font-size:13.5px}
+label{display:block;font-weight:650;font-size:13px;margin:0 0 7px}
+input{width:100%;min-height:48px;padding:11px 13px;border:1px solid var(--line);
+  border-radius:11px;background:#fbfcff;color:var(--text);font:inherit;outline:none}
+input:focus{border-color:var(--brand);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+button{width:100%;min-height:48px;margin-top:13px;border:0;border-radius:11px;
+  background:var(--brand);color:#fff;font:inherit;font-weight:700;cursor:pointer}
+button:disabled{opacity:.55;cursor:wait}
+.note{margin-top:15px;padding:11px 13px;border-radius:10px;background:#f3f6fb;
+  color:var(--muted);font-size:12.5px;line-height:1.65}
+.error{color:var(--bad);background:#fff0ee}
+.ok{color:var(--ok);background:#effaf4}
+.steps{display:grid;gap:10px;margin:18px 0;padding:0;list-style:none}
+.steps li{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;color:var(--muted)}
+.steps b{width:23px;height:23px;flex:0 0 23px;border-radius:50%;display:grid;place-items:center;
+  background:var(--brand-soft);color:var(--brand);font-size:11px;margin-top:1px}
+.dots::after{content:"";display:inline-block;width:1.4em;text-align:left;animation:dots 1.4s steps(4,end) infinite}
+@keyframes dots{0%{content:""}25%{content:"."}50%{content:".."}75%,100%{content:"..."}}
+.retry{margin-top:12px;background:#fff;color:var(--brand);border:1px solid #b8c9f4}
+@media (prefers-reduced-motion:reduce){
+  .mark.waiting,.dots::after{animation:none}
+}
+</style>
+</head>
+<body>
+<main class="card">
+  <div class="mark waiting" id="mark">🔗</div>
+  <h1 id="title">正在连接电脑<span class="dots"></span></h1>
+  <p>不需要输入授权码或设备名称。请在电脑打开设置页，看到一个设备请求后点一次“允许”。</p>
+  <ol class="steps">
+    <li><b>1</b><span>这台设备自动发出连接请求</span></li>
+    <li><b>2</b><span>电脑设置页点一次“允许”</span></li>
+    <li><b>3</b><span>这里自动进入聊天，下一页同设备直接打开</span></li>
+  </ol>
+  <div id="message" class="note" role="status" aria-live="polite">正在发送连接请求…</div>
+  <button id="retryBtn" class="retry" type="button" hidden>重新发送连接请求</button>
+</main>
+<script src="/static/session.js" defer></script>
+<script>
+(function(){
+  const title = document.getElementById('title');
+  const mark = document.getElementById('mark');
+  const message = document.getElementById('message');
+  const retry = document.getElementById('retryBtn');
+  let request = null;
+  let converting = false;
+  let stopped = false;
+  let retryTimer = null;
+
+  function platformName() {
+    const ua = navigator.userAgent || '';
+    if (/iPad/i.test(ua)) return 'iPad';
+    if (/iPhone/i.test(ua)) return 'iPhone';
+    if (/Android/i.test(ua)) return 'Android 平板';
+    if (/Windows/i.test(ua)) return 'Windows 设备';
+    if (/Macintosh|Mac OS/i.test(ua)) return 'Mac 设备';
+    return '局域网设备';
+  }
+
+  function deviceName() {
+    let suffix = '';
+    try {
+      suffix = String(sessionStorage.getItem('pai_pair_suffix') || '');
+    } catch (err) {}
+    if (!suffix) {
+      const bytes = new Uint8Array(2);
+      if (window.crypto && crypto.getRandomValues) {
+        crypto.getRandomValues(bytes);
+      } else {
+        bytes[0] = Math.floor(Math.random() * 255);
+        bytes[1] = Math.floor(Math.random() * 255);
+      }
+      suffix = ((bytes[0] << 8) | bytes[1]).toString(36).toUpperCase().padStart(3, '0').slice(-3);
+      try { sessionStorage.setItem('pai_pair_suffix', suffix); } catch (err) {}
+    }
+    return platformName() + ' · ' + suffix;
+  }
+
+  function setMessage(text, kind) {
+    message.className = 'note' + (kind ? ' ' + kind : '');
+    message.textContent = text;
+  }
+
+  function showRetry(text) {
+    retry.hidden = false;
+    if (text) { setMessage(text, 'error'); }
+  }
+
+  function saveRequest(data) {
+    request = {
+      id: data.request_id,
+      secret: data.request_secret,
+      name: data.name,
+      expiresAt: Date.now() + Math.max(60, Number(data.expires_in || 300)) * 1000
+    };
+    try { sessionStorage.setItem('pai_pair_request', JSON.stringify(request)); } catch (err) {}
+  }
+
+  function clearRequest() {
+    request = null;
+    try { sessionStorage.removeItem('pai_pair_request'); } catch (err) {}
+  }
+
+  function restoreRequest() {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem('pai_pair_request') || 'null');
+      if (saved && saved.id && saved.secret && Number(saved.expiresAt) > Date.now()) {
+        request = saved;
+      }
+    } catch (err) {}
+  }
+
+  async function authorizedElsewhere() {
+    try {
+      const response = await fetch('/api/app/access/status', {cache: 'no-store'});
+      const data = await response.json();
+      if (data && (!data.enabled || data.local || data.authorized)) {
+        location.replace('/web');
+        return true;
+      }
+    } catch (err) {}
+    return false;
+  }
+
+  async function createRequest() {
+    clearTimeout(retryTimer);
+    retry.hidden = true;
+    setMessage('正在发送连接请求…');
+    try {
+      const response = await fetch('/api/app/access/requests', {
+        method: 'POST',
+        cache: 'no-store',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({device_name: deviceName()})
+      });
+      const data = await response.json().catch(function(){ return {}; });
+      if (!response.ok) {
+        const detail = data && data.detail;
+        throw new Error((detail && (detail.message || detail)) || ('HTTP ' + response.status));
+      }
+      saveRequest(data);
+      setMessage('已发送：' + request.name + '。请到电脑设置页点“允许”。');
+      poll();
+    } catch (err) {
+      showRetry('发送失败：' + ((err && err.message) || '网络不可用'));
+    }
+  }
+
+  async function poll() {
+    if (stopped || converting || !request) return;
+    if (Date.now() >= Number(request.expiresAt || 0)) {
+      clearRequest();
+      setMessage('上次请求已过期，正在自动刷新…');
+      retryTimer = setTimeout(createRequest, 600);
+      return;
+    }
+    converting = true;
+    try {
+      const response = await fetch(
+        '/api/app/access/requests/' + encodeURIComponent(request.id) + '/claim',
+        {
+          method: 'POST',
+          cache: 'no-store',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({request_secret: request.secret})
+        }
+      );
+      const data = await response.json().catch(function(){ return {}; });
+      if (response.status === 410) {
+        clearRequest();
+        setMessage('连接请求已刷新，请查看电脑设置页…');
+        retryTimer = setTimeout(createRequest, 700);
+        return;
+      }
+      if (!response.ok) {
+        const detail = data && data.detail;
+        throw new Error((detail && (detail.message || detail)) || ('HTTP ' + response.status));
+      }
+      if (data.status === 'approved') {
+        stopped = true;
+        mark.classList.remove('waiting');
+        mark.textContent = '✓';
+        title.textContent = '连接成功';
+        setMessage('连接成功，正在打开聊天页面…', 'ok');
+        retry.hidden = true;
+        setTimeout(function(){ location.replace(data.redirect || '/web'); }, 1100);
+        return;
+      }
+      setMessage('已发送：' + request.name + '。请在电脑设置页点“允许”。');
+    } catch (err) {
+      setMessage('网络短暂中断，正在自动重试…');
+    } finally {
+      converting = false;
+    }
+    if (!stopped) { retryTimer = setTimeout(poll, 1200); }
+  }
+
+  retry.addEventListener('click', createRequest);
+  document.addEventListener('visibilitychange', function(){
+    if (!document.hidden && request && !stopped) { setTimeout(poll, 150); }
+  });
+
+  (async function start() {
+    if (await authorizedElsewhere()) return;
+    restoreRequest();
+    if (request) {
+      setMessage('已发送：' + request.name + '。请在电脑设置页点“允许”。');
+      poll();
+    } else {
+      createRequest();
+    }
+  })();
+})();
+</script>
+</body>
+</html>

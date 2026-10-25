@@ -1,0 +1,46 @@
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+config/user-settings.json
+config/*.bak
+config/mobile-tls/
+config/caddy-data/
+
+# Runtime data
+data/
+logs/
+output/
+backup/
+backups/
+knowledge/
+rag_storage/
+models/
+dist/
+*.log
+*.pid
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+build/
+wheels/
+*.egg-info/
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Private migration residues (never publish)
+.agents/
+.claude/
+.clinerules
+CLAUDE.md
+.env.backup_*
+*.bak_before_*

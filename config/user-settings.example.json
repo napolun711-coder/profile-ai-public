@@ -1,0 +1,74 @@
+{
+  "version": 1,
+  "updated_at": "",
+  "llm": {
+    "binding": "openai",
+    "model": "deepseek-chat",
+    "host": "https://api.deepseek.com",
+    "api_key": ""
+  },
+  "embedding": {
+    "binding": "ollama",
+    "model": "bge-m3:latest",
+    "host": "http://localhost:11434",
+    "api_key": "",
+    "dim": "",
+    "send_dim": ""
+  },
+  "rerank": {
+    "binding": "",
+    "model": "",
+    "host": "",
+    "api_key": ""
+  },
+  "vector_store": {
+    "type": "",
+    "qdrant_url": ""
+  },
+  "graph": {
+    "working_dir": "",
+    "input_dir": ""
+  },
+  "paths": {
+    "lightrag_home": ""
+  },
+  "app": {
+    "max_upload_size": "",
+    "allowed_extensions": "",
+    "log_level": "",
+    "skill_routing": "",
+    "generation_mode": "upstream"
+  },
+  "ingest": {
+    "confirm": "",
+    "ttl_hours": ""
+  },
+  "inbox": {
+    "enabled": "",
+    "poll_seconds": "",
+    "confirm": ""
+  },
+  "quality": {
+    "profile": "",
+    "enabled": "",
+    "min_chars": "",
+    "min_readable_ratio": "",
+    "max_garbled_ratio": "",
+    "max_repeat_ratio": "",
+    "min_chars_per_page": "",
+    "pass_score": "",
+    "max_unocr_images": ""
+  },
+  "ocr": {
+    "mode": "",
+    "provider": "",
+    "image_ocr": "",
+    "lang": "",
+    "device": "",
+    "base_url": "",
+    "model": "",
+    "token": "",
+    "max_file_mb": "",
+    "local_model_dir": ""
+  }
+}

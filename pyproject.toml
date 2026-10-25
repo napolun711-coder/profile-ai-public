@@ -1,0 +1,43 @@
+[project]
+name = "profile-ai"
+version = "0.4.0"
+description = "本地知识库助手：本地资料库问答、资料分析与资料整理（FastAPI + LightRAG）"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi>=0.141.1",
+    "openpyxl>=3.1.5",
+    "pypdf>=6.19.0",
+    "python-docx>=1.2.0",
+    "python-multipart>=0.0.32",
+    "requests>=2.34.2",
+    "uvicorn>=0.53.0",
+]
+
+# 开发 / 验收工具（**不进交付镜像**：Dockerfile 用 `uv sync --no-dev`）。
+# 为什么要写在这里：它们是 `uv sync` 的正式成员，否则下次 `uv sync` 会把
+# 手动装的工具一起剪掉（实测踩过：pytest / playwright 被清空，验收套件直接跑不起来）。
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "playwright>=1.64.0",
+]
+
+# 可选依赖（Phase 9 预留扩展位）：默认不安装，按需 `uv sync --extra ocr-local` 等
+[project.optional-dependencies]
+# 本机 OCR（不出网）：OCR_PROVIDER=local 时需要。
+# 注意：PaddleOCR / PaddlePaddle 目前尚未发布 Python 3.14 版本，因此本组依赖带
+# python_version 标记——在 Python 3.14 下会被跳过（否则整个依赖锁都解不出来）。
+# 需要本机识别时：用 Python 3.12/3.13 的独立环境安装，或先用云端 provider（paddle）。
+ocr-local = [
+    "paddleocr>=2.7; python_version < '3.14'",
+    "paddlepaddle>=2.6.2; python_version < '3.14'",
+]
+# 媒体与多模态扩展位（尚未实现，先占位以免将来改动依赖结构）
+media = [
+    "pillow>=10.0",
+]
+# 开发期静态检查（可选）
+dev = [
+    "ruff>=0.6",
+]
