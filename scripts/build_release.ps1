@@ -14,7 +14,8 @@ $zip = Join-Path $dist $name
 if (Test-Path -LiteralPath $zip) { Remove-Item -LiteralPath $zip -Force }
 $dirty = git -C $root status --porcelain
 if ($dirty) { Write-Host '[WARN] Working tree is not clean; archive is built from HEAD only.' -ForegroundColor Yellow }
-git -C $root archive --format=zip --prefix=('profile-ai-' + $Version + '/') -o $zip HEAD
+$prefix = 'profile-ai-' + $Version + '/'
+& git -C $root archive --format=zip ('--prefix=' + $prefix) -o $zip HEAD
 if ($LASTEXITCODE -ne 0) { throw 'git archive failed' }
 $hash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
 $sum = Join-Path $dist 'SHA256SUMS.txt'
