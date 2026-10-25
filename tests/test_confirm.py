@@ -766,21 +766,11 @@ class ConfirmUiContractTests(unittest.TestCase):
 
     def test_settings_page_has_ingest_section(self) -> None:
         html = self._read("settings.html")
-
-        for anchor in (
-            'id="sec-ingest"',
-            'id="ingestState"',
-            'id="sum-ingest"',
-            "ingest_confirm_effective",
-            "renderIngestHint",
-        ):
+        for anchor in ('id="sec-ingest"', 'id="inboxState"', 'id="sum-ingest"', 'id="ingest_confirm"'):
             self.assertIn(anchor, html)
-        # 表单字段由 FIELDS 表声明，键名是 [设置组, 键]
-        self.assertIn('["ingest", "confirm"]', html)
-        self.assertIn('["ingest", "ttl_hours"]', html)
-        # 侧栏徽章靠 SECTIONS 里的 badge 动态生成 nav-<badge>
-        self.assertRegex(html, r'id:\s*"sec-ingest",[\s\S]{0,200}?badge:\s*"ingest"')
-        self.assertIn("nav-", html)
+        self.assertIn('["ingest","confirm"]', html)
+        self.assertIn('["ingest","ttl_hours"]', html)
+        self.assertIn('{id:"sec-ingest"', html)
 
     def test_index_page_wires_review_card(self) -> None:
         html = self._read("index.html")

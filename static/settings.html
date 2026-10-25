@@ -5,1801 +5,211 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script src="/static/access_gate.js"></script>
 <title>设置 - 本地知识库助手</title>
-<!-- 设计令牌的唯一来源：配色 / 圆角 / 阴影 / 字号 / 断点约定全在这里 -->
 <link rel="stylesheet" href="/static/theme.css">
-<!-- 外观模式（auto / light / dark）：head 同步执行，避免深色下闪浅色 -->
 <script src="/static/theme.js"></script>
 <style>
-/* 令牌、*{box-sizing}、[hidden]、body 基样式都在 theme.css。
-   本页原来那份 :root 只有部分令牌，而且 **--side-accent 用了却没定义**
-   （.nav-item.active 的左侧竖条、≤900px 的底部下划线都取它，实际一直回退到 currentColor）
-   —— 现在统一由 theme.css 提供。 */
-/* 字号只保留 6 档：11 / 12 / 13 / 14 / 15 / 16。
-   11 = 角标、12 = 辅助说明、13 = 次级正文、14 = 正文/表单、15 = 卡片标题、16 = 页面标题。 */
 html{scroll-behavior:smooth}
-a{color:var(--brand)}
-.header{position:sticky;top:0;z-index:30;height:60px;background:var(--panel);color:var(--text);display:flex;align-items:center;gap:12px;padding:0 20px;border-bottom:1px solid var(--line);box-shadow:var(--shadow-header)}
-.header .logo{width:32px;height:32px;border-radius:9px;background:var(--logo-gradient);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--on-brand)}
-/* 顶栏标题从 <b> 换成 <h1>（原来整页没有一级标题），重置成原来的视觉 */
-.header h1{margin:0;font-size:16px;font-weight:700}
-.header .spacer{flex:1}
-.header a{color:var(--brand);font-size:14px}
-.header a:hover{color:var(--brand-2)}
-.layout{display:flex;align-items:flex-start;gap:18px;max-width:1180px;margin:18px auto 92px;padding:0 16px}
-.nav{position:sticky;top:78px;flex:0 0 188px;width:188px;background:var(--panel);border:1px solid var(--side-line);border-radius:var(--radius);box-shadow:var(--shadow);padding:10px 8px 8px}
-.nav-title{font-size:12px;color:var(--side-text-dim);padding:2px 8px 8px}
-.nav-item{display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:9px;color:var(--side-text-dim);font-size:13px;cursor:pointer;border-left:3px solid transparent;transition:background .15s ease}
-.nav-item:hover{background:var(--side-hover)}
-.nav-item.active{background:var(--side-accent-soft);color:var(--brand-2);font-weight:600;border-left-color:var(--side-accent)}
-.nav-item .ico{width:15px;text-align:center;font-size:12px;font-weight:600;color:var(--side-text-faint)}
-.nav-item.active .ico{color:var(--brand)}
-.nav-item .state{margin-left:auto;font-size:11px;color:var(--side-text-faint)}
-.nav-item .state.on{color:var(--ok-text)}
-.nav-item .state.warn{color:var(--warn-text)}
-.nav-actions{display:flex;gap:6px;padding:8px 2px 2px;margin-top:8px;border-top:1px solid var(--line)}
-.btn-mini{flex:1;background:var(--side-hover);color:var(--side-text-dim);border-radius:8px;padding:6px 0;font-size:12px}
-.btn-mini:hover{background:var(--grey-hover)}
-.bar .only-narrow{display:none}
-.main{flex:1;min-width:0}
-.card{background:var(--panel);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:12px;padding:0 18px 16px;overflow:hidden;scroll-margin-top:74px;transition:box-shadow .18s ease}
-.card:hover{box-shadow:var(--shadow-card)}
-.card.collapsed{padding-bottom:0}
-.card-head{display:flex;align-items:center;gap:10px;margin:0 -18px;padding:13px 18px;cursor:pointer;user-select:none}
-.card-head:hover{background:var(--grey-bg)}
-.card:not(.collapsed) > .card-head{border-bottom:1px solid var(--grey-line-soft);margin-bottom:12px}
-.card-head .num{flex:0 0 24px;width:24px;height:24px;border-radius:8px;background:var(--brand-chip);color:var(--brand-2);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
-.card-head h2{margin:0;font-size:15px;font-weight:600}
-.card-head .sum{margin-left:auto;font-size:12px;color:var(--muted);max-width:48%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.card-head .chev{flex:0 0 12px;color:var(--grey-faint);font-size:11px;transition:transform .18s ease}
-.card.collapsed > .card-head .chev{transform:rotate(-90deg)}
-.card.collapsed > :not(.card-head){display:none}
-.hint{color:var(--muted);font-size:12px;margin:0 0 12px;line-height:1.7}
-.note-line{margin:-2px 0 12px;padding:9px 12px;border-radius:10px;background:var(--grey-bg);border:1px solid var(--brand-chip);font-size:12px;line-height:1.7;color:var(--grey-text)}
-.note-line.warn{background:var(--warn-soft);border-color:var(--warn-line);color:var(--warn-text)}
-.note-line.ok{background:var(--ok-soft);border-color:var(--ok-line);color:var(--ok-text)}
-.access-pair-box{
-  display:flex;gap:18px;align-items:center;flex-wrap:wrap;
-  margin:4px 0 14px;padding:14px;border:1px solid var(--line);
-  border-radius:12px;background:var(--panel);
-}
-.access-pair-box[hidden]{display:none}
-.access-pair-copy{flex:1;min-width:220px;font-size:13px;line-height:1.75;color:var(--grey-text)}
-.access-pair-url{word-break:break-all;color:var(--brand-2);margin:6px 0}
-.access-connect-icon{
-  width:54px;height:54px;flex:0 0 54px;border-radius:16px;display:grid;place-items:center;
-  background:var(--brand-soft);color:var(--brand-2);font-size:24px;
-}
-.access-copy{margin:4px 0 0;padding:5px 10px;min-height:30px;border:1px solid var(--line);
-  border-radius:8px;background:var(--panel);color:var(--brand-2);font-size:12px}
-.access-device-list{flex:1;min-width:260px;display:flex;flex-direction:column;gap:8px}
-.access-device{
-  display:flex;align-items:center;gap:10px;padding:9px 11px;
-  border:1px solid var(--line);border-radius:10px;background:var(--panel);
-}
-.access-device-main{flex:1;min-width:0}
-.access-device-name{font-weight:650;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.access-device-meta{font-size:11.5px;color:var(--muted);margin-top:2px}
-.access-device-empty{font-size:12px;color:var(--muted)}
-.access-request{border-color:var(--brand-line);background:var(--brand-soft)}
-.access-actions{display:flex;gap:7px;flex:0 0 auto}
-.access-actions button{margin:0;padding:6px 11px;min-height:32px;border-radius:8px;font-size:12px}
-.access-allow{background:var(--brand);color:#fff;border:1px solid var(--brand)}
-.access-ignore{background:var(--panel);color:var(--muted);border:1px solid var(--line)}
-.row{display:flex;margin-bottom:9px;align-items:center;gap:10px;flex-wrap:wrap}
-.row label{width:158px;flex:0 0 158px;font-size:14px;color:var(--grey-text)}
-.row input[type=text],.row input[type=password],.row input[type=number],.row select{flex:1;min-width:200px;max-width:520px;padding:8px 11px;border:1px solid var(--line);border-radius:9px;font-size:14px;background:var(--panel);color:inherit}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font-sans)}
+a{color:var(--brand);text-decoration:none}
+.header{position:sticky;top:0;z-index:30;height:58px;background:var(--panel);display:flex;align-items:center;gap:12px;padding:0 20px;border-bottom:1px solid var(--line)}
+.logo{width:32px;height:32px;border-radius:9px;background:var(--logo-gradient);display:grid;place-items:center;color:var(--on-brand);font-size:12px;font-weight:700}
+.header h1{font-size:16px;margin:0}.spacer{flex:1}
+.layout{display:flex;align-items:flex-start;gap:18px;max-width:1120px;margin:18px auto 92px;padding:0 16px}
+.nav{position:sticky;top:76px;width:190px;flex:0 0 190px;background:var(--panel);border:1px solid var(--side-line);border-radius:var(--radius);box-shadow:var(--shadow);padding:10px}
+.nav-title{font-size:12px;color:var(--muted);padding:2px 7px 8px}
+.nav-item{display:flex;gap:8px;padding:8px;border-radius:8px;color:var(--side-text-dim);font-size:13px;cursor:pointer}
+.nav-item:hover,.nav-item.active{background:var(--side-accent-soft);color:var(--brand-2)}
+.main{flex:1;min-width:0}.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:12px;scroll-margin-top:76px}
+.card>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:13px 16px;user-select:none}
+.card>summary::-webkit-details-marker{display:none}
+.card>summary:hover{background:var(--grey-bg)}
+.num{width:24px;height:24px;border-radius:8px;background:var(--brand-chip);color:var(--brand-2);display:grid;place-items:center;font-size:12px;font-weight:700}
+.card h2{font-size:15px;margin:0}.summary{margin-left:auto;color:var(--muted);font-size:12px;max-width:50%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-body{padding:0 16px 16px;border-top:1px solid var(--line)}
+.hint{font-size:12px;color:var(--muted);line-height:1.6;margin:12px 0}
+.row{display:grid;grid-template-columns:155px minmax(0,1fr) auto;gap:9px;align-items:center;margin:9px 0}
+.row label{font-size:13px;color:var(--grey-text)}
+.row input,.row select{width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--surface-input);color:var(--text);font:inherit;font-size:14px;min-height:38px}
 .row input:focus,.row select:focus{outline:none;border-color:var(--brand-line-focus);box-shadow:var(--focus-ring)}
-.row .sub{flex:1 1 100%;font-size:12px;color:var(--muted);padding-left:168px;margin-top:-3px}
-/* 已保存的密钥：留空 = 保持原值，所以清除必须单独表达（保存时随 clear_secrets 提交） */
-.row .btn-clear{flex:0 0 auto;padding:8px 12px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--muted);font-size:13px;min-height:38px}
-.row .btn-clear:hover{border-color:var(--bad-text);color:var(--bad-text)}
-.row .btn-clear.pending{border-color:var(--warn-line);background:var(--warn-soft);color:var(--warn-text)}
-/* 卡片内的二级小标题：原来 4 处 h2 各自写了内联 font-size，现统一到这里 */
-.subhead{margin:16px 0 4px;font-size:14px;font-weight:600}
-.subhead.tight{margin-top:12px}
-table{width:100%;border-collapse:collapse;font-size:13px;margin:6px 0}
-th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--grey-line-soft);vertical-align:top}
-th{color:var(--muted);font-weight:600;background:var(--grey-bg)}
-td:first-child{width:190px;color:var(--grey-text)}
-.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.chip{font-size:12px;background:var(--grey-soft);border-radius:999px;padding:3px 10px;color:var(--grey-text)}
-.test-list{margin:0;padding:0;list-style:none;font-size:13px}
-.test-list li{padding:6px 0;border-bottom:1px dashed var(--grey-line-soft)}
-.ok{color:var(--ok-text)}
-.bad{color:var(--bad-text)}
-.muted{color:var(--muted)}
-.file-info{font-size:13px}
-.injected-label{font-size:12px}
-.bar{position:sticky;bottom:0;z-index:20;background:var(--glass-strong);border-top:1px solid var(--line);padding:11px 20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.bar .status{margin-left:auto;font-size:12px;color:var(--muted)}
-/* 保存/测试的结果原来只有 .bad 一个分支，而 .bar .status{color} 的优先级高于全局 .bad，
-   失败时实际仍是灰的、成功与空闲完全同色 —— 用户看不出这一次到底成没成。这里补足三态。 */
-.bar .status.ok{color:var(--ok-text)}
-.bar .status.bad{color:var(--bad-text)}
-/* 未保存改动计数：跟着底栏一起常驻，所以不能写进 #status 的文本里（那条会被下一次操作覆盖） */
-.bar .dirty{flex:0 0 auto;font-size:12px;color:var(--warn-text);background:var(--warn-soft);border:1px solid var(--warn-line);border-radius:999px;padding:2px 10px}
-/* 键盘焦点：卡片头是负边距的全宽元素，卡片又 overflow:hidden，外描边会被裁掉 */
-.card-head:focus-visible,.nav-item:focus-visible{outline-offset:-2px}
-/* 按钮的进行中状态（测试连接要跑好几秒），没有禁用样式的话用户看不出它已经点了 */
-.bar button[disabled]{opacity:.55;cursor:default}
-.btn-primary{background:var(--brand);color:var(--on-brand);padding:10px 20px;border-radius:10px;font-weight:600}
-.btn-primary:hover{background:var(--brand-2)}
-.btn-plain{background:var(--brand-chip);color:var(--brand-chip-text);padding:10px 16px;border-radius:10px}
-.btn-plain:hover{background:var(--brand-fill)}
-@media (max-width:900px){/* 移动版布局：页内导航由竖排变横向条 */
-    .layout{flex-direction:column;gap:12px}.nav{position:static;width:100%;flex:1 1 auto;display:flex;flex-wrap:nowrap;overflow-x:auto;gap:6px;padding:8px}.nav-title{display:none}.nav-actions{border-top:none;margin:0;padding:0 2px}.nav-item{border-left:none;border-bottom:2px solid transparent;white-space:nowrap;padding:6px 10px}.nav-item.active{border-left:none;border-bottom-color:var(--side-accent)}.nav-item .state{display:none}.bar .only-narrow{display:inline-block}}
-/* 手机（≤620px）：单列排版、触控尺寸、表格自己横向滚动（不撑破页面） */
-@media (max-width:620px){
-    .header{height:56px;padding:0 12px}
-    .header h1{font-size:15px}
-    .header a{display:inline-flex;align-items:center;min-height:40px;padding:8px 4px}
-    .layout{gap:10px;margin:12px auto 160px;padding:0 10px}
-    /* 手机上的分组导航：一条可左右滑动的紧凑条（原来是 10 个条目竖着堆约 390px） */
-    .nav{padding:8px;flex-direction:column;overflow:visible;gap:6px}
-    #navlist{display:flex;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;gap:6px;scrollbar-width:none}
-    #navlist::-webkit-scrollbar{display:none}
-    .nav-item{flex:0 0 auto;white-space:nowrap;min-height:40px;padding:9px 12px}
-    .nav-actions{flex-wrap:wrap}
-    .nav-actions button{min-height:36px}
-    .card{padding:0 12px 12px;scroll-margin-top:70px}
-    .card-head{margin:0 -12px;padding:12px;min-height:48px}
-    .card-head h2{font-size:15px}
-    .card-head .sum{max-width:40%}
-    .hint{font-size:12px}
-    .row{gap:6px;margin-bottom:12px}
-    .row label{width:100%;flex:1 1 100%;font-size:13px}
-    /* 字号 16px：iOS 聚焦时不会自动放大整页；高度 ≥44px 便于触控 */
-    .row input[type=text],.row input[type=password],.row input[type=number],.row select{width:100%;min-width:0;max-width:100%;font-size:16px;padding:10px 11px;min-height:44px}
-    .row .btn-clear{min-height:44px}
-    .row .sub{padding-left:0;font-size:12px}
-    table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch}
-    th,td{padding:8px 9px;font-size:12px}
-    td:first-child{width:auto;min-width:104px}
-    .chip{padding:5px 10px}
-    .bar{padding:10px 12px calc(10px + env(safe-area-inset-bottom))}
-    .bar button{flex:1 1 calc(50% - 5px);min-height:44px}
-    .bar .status{flex:1 1 100%;margin-left:0;font-size:12px;line-height:1.6}
-    body{-webkit-text-size-adjust:100%}
-}
-/* 小屏手机（≤560px）：卡片头部的汇总文字让位，优先保证标题与表单 */
-@media (max-width:420px){
-    .layout{padding:0 8px}
-    .card{padding:0 10px 10px}
-    .card-head{margin:0 -10px;padding:11px 10px}
-    .card-head .sum{display:none}
-    .card-head h2{font-size:14px}
-}
+.row .sub{grid-column:2/4;font-size:12px;color:var(--muted);margin-top:-4px}
+.ghost{border:1px solid var(--line);background:var(--panel);color:var(--muted);border-radius:8px;padding:8px 10px;cursor:pointer}
+.ghost:hover{color:var(--bad-text);border-color:var(--bad-line)}
+.ghost.pending{color:var(--warn-text);border-color:var(--warn-line);background:var(--warn-soft)}
+.subhead{font-size:13px;font-weight:700;margin:16px 0 6px;color:var(--grey-text)}
+.note{font-size:12px;line-height:1.6;color:var(--muted);padding:9px 11px;border-radius:9px;background:var(--grey-bg);border:1px solid var(--line)}
+.note.ok{color:var(--ok-text);background:var(--ok-soft);border-color:var(--ok-line)}
+.note.warn{color:var(--warn-text);background:var(--warn-soft);border-color:var(--warn-line)}
+.advanced{margin:10px 0;border:1px dashed var(--line);border-radius:9px;padding:8px 10px}
+.advanced>summary{cursor:pointer;font-size:12px;color:var(--muted)}
+.device-list{display:flex;flex-direction:column;gap:7px;margin-top:8px}
+.device{display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid var(--line);border-radius:9px}
+.device-main{flex:1;min-width:0}.device-name{font-size:13px;font-weight:600}.device-meta{font-size:11px;color:var(--muted);word-break:break-all}
+.device-actions{display:flex;gap:6px}.device-actions button{border:1px solid var(--line);background:var(--panel);border-radius:7px;padding:5px 9px;cursor:pointer}
+.device-actions .allow{background:var(--brand);color:var(--on-brand);border-color:var(--brand)}
+.pair-box{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0;padding:10px;border:1px solid var(--line);border-radius:9px;background:var(--grey-bg)}
+.pair-url{flex:1;min-width:220px;font-size:12px;word-break:break-all;color:var(--brand-2)}
+table{width:100%;border-collapse:collapse;font-size:12px;margin:8px 0}th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--muted);font-weight:600}td:first-child{width:170px;color:var(--grey-text)}
+.checks{list-style:none;padding:0;margin:8px 0}.checks li{padding:7px 0;border-bottom:1px dashed var(--line);font-size:12px}.ok{color:var(--ok-text)}.bad{color:var(--bad-text)}.muted{color:var(--muted)}
+.bar{position:sticky;bottom:0;z-index:20;display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:11px 18px;background:var(--glass-strong);border-top:1px solid var(--line)}
+.btn{min-height:38px;padding:9px 16px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--text);cursor:pointer}.btn.primary{background:var(--brand);border-color:var(--brand);color:var(--on-brand);font-weight:600}.btn:disabled{opacity:.55;cursor:default}
+.status{margin-left:auto;font-size:12px;color:var(--muted)}.status.ok{color:var(--ok-text)}.status.bad{color:var(--bad-text)}.dirty{font-size:12px;color:var(--warn-text);background:var(--warn-soft);border:1px solid var(--warn-line);border-radius:999px;padding:3px 9px}
+@media(max-width:900px){.layout{display:block}.nav{position:static;width:auto;display:flex;gap:6px;overflow-x:auto;margin-bottom:12px}.nav-title{display:none}.nav-item{white-space:nowrap;min-height:40px;align-items:center}.main{width:100%}}
+@media(max-width:620px){.header{padding:0 12px}.layout{padding:0 10px;margin-bottom:150px}.card>summary{padding:12px}.card-body{padding:0 12px 12px}.row{grid-template-columns:1fr;gap:4px}.row .sub{grid-column:1}.row input,.row select{font-size:16px;min-height:44px}.ghost{min-height:42px}.bar{padding:10px 12px calc(10px + env(safe-area-inset-bottom))}.bar .btn{flex:1 1 calc(50% - 5px)}.status{flex:1 1 100%;margin-left:0}}
 </style>
-<!-- 三页共用的反馈组件（PAI.toast / PAI.confirm）；样式在 theme.css -->
-<script src="/static/ui.js" defer></script>
 </head>
 <body>
-<div class="header">
-    <div class="logo">资料</div>
-    <h1>设置</h1>
-    <span class="spacer"></span>
-    <a href="/web">← 返回对话</a>
-    <!-- 外观：自动 → 浅色 → 深色（theme.js 接管） -->
-    <button id="themeBtn" class="theme-btn" type="button" data-theme-toggle></button>
-</div>
-
+<header class="header"><div class="logo">资料</div><h1>设置</h1><span class="spacer"></span><a href="/web">返回对话</a><button id="themeBtn" class="ghost" type="button" data-theme-toggle>外观</button></header>
 <div class="layout">
-<nav class="nav">
-    <div class="nav-title">设置分组（点击跳转 / 展开）</div>
-    <div id="navlist"></div>
-    <div class="nav-actions">
-        <button type="button" class="btn-mini" onclick="expandAll(true)">全部展开</button>
-        <button type="button" class="btn-mini" onclick="expandAll(false)">全部收起</button>
-    </div>
-</nav>
-
+<nav class="nav" aria-label="设置分组"><div class="nav-title">设置</div><div id="navlist"></div></nav>
 <main class="main">
-
-<section class="card" id="sec-llm">
-    <div class="card-head" role="button" tabindex="0" aria-expanded="true" onclick="toggleSection('sec-llm')" title="点击展开 / 收起">
-        <span class="num">①</span>
-        <h2>生成模型（LLM）</h2>
-        <span class="sum" id="sum-llm"></span>
-        <span class="chev">▾</span>
-    </div>
-    <p class="hint">由 LightRAG 调用的生成模型。接入方式、模型名、接口地址与密钥都在这里统一管理。</p>
-    <div class="row"><label>接入方式</label>
-        <input type="text" id="llm_binding" list="llm-binding-presets" placeholder="openai / ollama / azure_openai / gemini">
-        <datalist id="llm-binding-presets">
-            <option value="openai"></option><option value="ollama"></option>
-            <option value="azure_openai"></option><option value="gemini"></option>
-        </datalist>
-        <span class="sub">填写 LightRAG 支持的提供方名称。</span>
-    </div>
-    <div class="row"><label>模型名称</label><input type="text" id="llm_model" placeholder="例如 deepseek-chat / gpt-4.1-mini / qwen2.5:7b"></div>
-    <div class="row"><label>接口地址</label><input type="text" id="llm_host" placeholder="例如 https://api.deepseek.com 或 http://localhost:11434"><span class="sub">OpenAI 兼容服务通常填写 base URL。</span></div>
-    <div class="row"><label>API Key</label><input type="password" id="llm_api_key" placeholder="留空表示保持现有值不变"><button type="button" class="btn-clear" data-clear-secret="llm_api_key" hidden>清除</button></div>
-</section>
-
-<section class="card" id="sec-embedding">
-    <div class="card-head" role="button" tabindex="0" aria-expanded="true" onclick="toggleSection('sec-embedding')" title="点击展开 / 收起">
-        <span class="num">②</span>
-        <h2>嵌入模型（Embedding）</h2>
-        <span class="sum" id="sum-embedding"></span>
-        <span class="chev">▾</span>
-    </div>
-    <p class="hint">负责把文档编码成向量。换模型或维度后需要重建知识库。</p>
-    <div class="row"><label>接入方式</label>
-        <input type="text" id="embedding_binding" list="embedding-binding-presets" placeholder="ollama / openai / azure_openai / gemini">
-        <datalist id="embedding-binding-presets">
-            <option value="ollama"></option><option value="openai"></option>
-            <option value="azure_openai"></option><option value="gemini"></option>
-        </datalist>
-    </div>
-    <div class="row"><label>模型名称</label><input type="text" id="embedding_model" placeholder="例如 bge-m3:latest / text-embedding-3-small"></div>
-    <div class="row"><label>接口地址</label><input type="text" id="embedding_host" placeholder="例如 http://localhost:11434 或 https://api.openai.com/v1"></div>
-    <div class="row"><label>API Key</label><input type="password" id="embedding_api_key" placeholder="本机 Ollama 可留空；远程服务按需填写"></div>
-    <div class="row"><label>向量维度</label><input type="number" id="embedding_dim" min="1" step="1" placeholder="例如 1024"></div>
-    <div class="row"><label>发送维度参数</label><select id="embedding_send_dim"><option value="">（不修改）</option><option value="true">是</option><option value="false">否</option></select></div>
-</section>
-
-<section class="card" id="sec-rerank">
-    <div class="card-head" role="button" tabindex="0" aria-expanded="true" onclick="toggleSection('sec-rerank')" title="点击展开 / 收起">
-        <span class="num">③</span>
-        <h2>重排序模型（Rerank）</h2>
-        <span class="sum" id="sum-rerank"></span>
-        <span class="chev">▾</span>
-    </div>
-    <p class="hint">可选：对检索结果再排序，提升准确度；不用时选“关闭”。</p>
-    <div class="row"><label>接入方式</label>
-        <select id="rerank_binding">
-            <option value="">（不修改）</option>
-            <option value="null">关闭</option>
-            <option value="aliyun">阿里云</option>
-            <option value="cohere">Cohere</option>
-            <option value="jina">Jina</option>
-        </select></div>
-    <div class="row"><label>模型名称</label><input type="text" id="rerank_model" placeholder="例如 qwen3-vl-rerank"></div>
+<details class="card" id="sec-models" open><summary><span class="num">1</span><h2>模型</h2><span class="summary" id="sum-models"></span></summary><div class="card-body">
+  <p class="hint">生成、嵌入和重排序模型均在此管理。</p>
+  <div class="subhead">生成模型</div>
+  <div class="row"><label>提供方</label><input type="text" id="llm_binding" list="provider-list" placeholder="openai / ollama / azure_openai / gemini"></div>
+  <div class="row"><label>模型</label><input type="text" id="llm_model" placeholder="例如 deepseek-chat"></div>
+  <div class="row"><label>接口地址</label><input type="text" id="llm_host" placeholder="https://api.deepseek.com"></div>
+  <div class="row"><label>API Key</label><input type="password" id="llm_api_key" placeholder="留空保持不变"><button type="button" class="ghost" data-clear="llm_api_key">清除</button></div>
+  <div class="subhead">嵌入模型</div>
+  <div class="row"><label>提供方</label><input type="text" id="embedding_binding" list="provider-list" placeholder="ollama / openai"></div>
+  <div class="row"><label>模型</label><input type="text" id="embedding_model" placeholder="bge-m3:latest"></div>
+  <div class="row"><label>接口地址</label><input type="text" id="embedding_host" placeholder="http://localhost:11434"></div>
+  <div class="row"><label>API Key</label><input type="password" id="embedding_api_key" placeholder="本机 Ollama 可留空"><button type="button" class="ghost" data-clear="embedding_api_key">清除</button></div>
+  <div class="row"><label>向量维度</label><input type="number" id="embedding_dim" min="1" step="1" placeholder="自动"></div>
+  <div class="row"><label>发送维度</label><select id="embedding_send_dim"><option value="">自动</option><option value="true">是</option><option value="false">否</option></select></div>
+  <details class="advanced"><summary>重排序模型（可选）</summary>
+    <div class="row"><label>提供方</label><select id="rerank_binding"><option value="">未设置</option><option value="null">关闭</option><option value="aliyun">阿里云</option><option value="cohere">Cohere</option><option value="jina">Jina</option></select></div>
+    <div class="row"><label>模型</label><input type="text" id="rerank_model"></div>
     <div class="row"><label>接口地址</label><input type="text" id="rerank_host"></div>
-    <div class="row"><label>API Key</label><input type="password" id="rerank_api_key" placeholder="留空表示保持现有值不变"><button type="button" class="btn-clear" data-clear-secret="rerank_api_key" hidden>清除</button></div>
-</section>
+    <div class="row"><label>API Key</label><input type="password" id="rerank_api_key" placeholder="留空保持不变"><button type="button" class="ghost" data-clear="rerank_api_key">清除</button></div>
+  </details>
+  <datalist id="provider-list"><option value="openai"></option><option value="ollama"></option><option value="azure_openai"></option><option value="gemini"></option></datalist>
+</div></details>
 
-<section class="card" id="sec-vector">
-    <div class="card-head" role="button" tabindex="0" aria-expanded="true" onclick="toggleSection('sec-vector')" title="点击展开 / 收起">
-        <span class="num">④</span>
-        <h2>向量存储（Vector Store）</h2>
-        <span class="sum" id="sum-vector"></span>
-        <span class="chev">▾</span>
-    </div>
-    <p class="hint">当前知识库使用<b>本地文件向量库</b>（无需 Docker / Qdrant）。如需切回 Qdrant，把存储类型改为 Qdrant 后保存并重启；切换向量库类型后通常需要用「切换本地向量库.bat」或重新上传文档来重建索引。</p>
-    <div class="row"><label>存储类型</label>
-        <select id="vector_store_type">
-            <option value="">（不修改，沿用 LightRAG 配置）</option>
-            <option value="qdrant">Qdrant（需 Docker 或本机服务）</option>
-            <option value="local">本地文件（无需 Qdrant，便于迁移）</option>
-        </select></div>
-    <div class="row"><label>Qdrant 地址</label><input type="text" id="vector_store_qdrant_url" placeholder="http://localhost:6333"></div>
-    <h2 class="subhead">分块与召回</h2>
-    <div class="row"><label>分块大小</label><input type="number" id="rag_chunk_size" min="100" max="10000" step="1" placeholder="默认 1200 tokens"></div>
-    <div class="row"><label>分块重叠</label><input type="number" id="rag_chunk_overlap" min="0" max="2000" step="1" placeholder="默认 100 tokens"></div>
-    <div class="row"><label>实体/关系召回数</label><input type="number" id="rag_top_k" min="1" max="500" step="1" placeholder="默认 50"></div>
-    <div class="row"><label>文本片段召回数</label><input type="number" id="rag_chunk_top_k" min="1" max="500" step="1" placeholder="默认 30"></div>
-</section>
+<details class="card" id="sec-knowledge"><summary><span class="num">2</span><h2>知识库与检索</h2><span class="summary" id="sum-knowledge"></span></summary><div class="card-body">
+  <p class="hint">分块和召回参数随设置保存，重启后生效。</p>
+  <div class="row"><label>向量存储</label><select id="vector_store_type"><option value="">默认</option><option value="local">本地文件</option><option value="qdrant">Qdrant</option></select></div>
+  <div class="row"><label>Qdrant 地址</label><input type="text" id="vector_store_qdrant_url" placeholder="http://localhost:6333"></div>
+  <div class="row"><label>分块大小</label><input type="number" id="rag_chunk_size" min="100" max="10000" placeholder="1200"></div>
+  <div class="row"><label>分块重叠</label><input type="number" id="rag_chunk_overlap" min="0" max="2000" placeholder="100"></div>
+  <div class="row"><label>实体/关系召回</label><input type="number" id="rag_top_k" min="1" max="500" placeholder="50"></div>
+  <div class="row"><label>文本片段召回</label><input type="number" id="rag_chunk_top_k" min="1" max="500" placeholder="30"></div>
+  <details class="advanced"><summary>存储路径（高级）</summary>
+    <div class="row"><label>LightRAG 目录</label><input type="text" id="paths_lightrag_home" placeholder="留空使用默认"></div>
+    <div class="row"><label>索引目录</label><input type="text" id="graph_working_dir" placeholder="留空使用默认"></div>
+    <div class="row"><label>输入目录</label><input type="text" id="graph_input_dir" placeholder="留空使用默认"></div>
+  </details>
+</div></details>
 
-<section class="card" id="sec-paths">
-    <div class="card-head" role="button" tabindex="0" aria-expanded="true" onclick="toggleSection('sec-paths')" title="点击展开 / 收起">
-        <span class="num">⑤</span>
-        <h2>存储路径</h2>
-        <span class="sum" id="sum-paths"></span>
-        <span class="chev">▾</span>
-    </div>
-    <p class="hint">运行数据默认存放在 <code>%LOCALAPPDATA%\ProfileAI</code>。可填写绝对路径；相对路径按用户数据目录解析。</p>
-    <div class="row"><label>LightRAG 安装目录</label><input type="text" id="paths_lightrag_home" placeholder="留空 = ProfileAI\backend\lightrag"></div>
-    <div class="row"><label>知识库数据目录</label><input type="text" id="graph_working_dir" placeholder="留空 = ProfileAI\rag_storage"></div>
-    <div class="row"><label>文档输入目录</label><input type="text" id="graph_input_dir" placeholder="留空 = ProfileAI\data\lightrag_input"></div>
-</section>
+<details class="card" id="sec-ingest"><summary><span class="num">3</span><h2>导入与质量门</h2><span class="summary" id="sum-ingest"></span></summary><div class="card-body">
+  <p class="hint">质量校验恒定开启；未通过的文件必须人工放行。</p>
+  <div class="row"><label>质量预设</label><select id="quality_profile"><option value="">默认 standard</option><option value="standard">standard</option><option value="strict">strict</option><option value="loose">loose</option><option value="custom">custom</option></select></div>
+  <details class="advanced"><summary>自定义质量阈值</summary>
+    <div class="row"><label>最少字符</label><input type="number" id="quality_min_chars" min="0"></div>
+    <div class="row"><label>可读比例</label><input type="number" id="quality_min_readable_ratio" min="0" max="1" step="0.01"></div>
+    <div class="row"><label>乱码上限</label><input type="number" id="quality_max_garbled_ratio" min="0" max="1" step="0.01"></div>
+    <div class="row"><label>重复行上限</label><input type="number" id="quality_max_repeat_ratio" min="0" max="1" step="0.01"></div>
+    <div class="row"><label>每页字符</label><input type="number" id="quality_min_chars_per_page" min="0"></div>
+    <div class="row"><label>及格分</label><input type="number" id="quality_pass_score" min="0" max="100"></div>
+    <div class="row"><label>未识别图片</label><input type="number" id="quality_max_unocr_images" min="0"></div>
+  </details>
+  <div class="row"><label>入库确认</label><select id="ingest_confirm"><option value="">默认 always</option><option value="always">每次确认</option><option value="auto">自动建议</option><option value="off">直接入库</option></select></div>
+  <div class="row"><label>待确认保留</label><input type="number" id="ingest_ttl_hours" min="0" placeholder="24 小时"></div>
+  <div class="subhead">收件箱</div>
+  <div class="row"><label>启用轮询</label><select id="inbox_enabled"><option value="">默认关闭</option><option value="true">开启</option><option value="false">关闭</option></select></div>
+  <div class="row"><label>扫描间隔</label><input type="number" id="inbox_poll_seconds" min="3" max="600" placeholder="10 秒"></div>
+  <div class="row"><label>收件箱确认</label><select id="inbox_confirm"><option value="">默认 always</option><option value="always">每次确认</option><option value="auto">自动建议</option><option value="off">直接入库</option></select></div>
+  <p class="note" id="inboxState">读取中…</p>
+</div></details>
 
-<section class="card" id="sec-quality">
-    <div class="card-head" role="button" tabindex="0" aria-expanded="true" onclick="toggleSection('sec-quality')" title="点击展开 / 收起">
-        <span class="num">⑥</span>
-        <h2>入库质量校验（Quality Gate）</h2>
-        <span class="sum" id="sum-quality"></span>
-        <span class="chev">▾</span>
-    </div>
-    <p class="hint">上传的文件先在本地解析为 Markdown 再做质量校验：<b>只有通过校验的内容才会进入知识库</b>。
-        <b>这道门没有总开关</b>（Phase 18 起 QUALITY_ENABLED 已失效）：校验恒定运行，没通过的文件只能在
-        上传卡片上点「仍要入库」由你自己放行，档案里会留下「人工放行」记录。
-        留空表示沿用 .env / 内置默认值；选择 standard / strict / loose 时，下面的具体阈值由预设决定（自定义数值会被忽略）。</p>
-    <div class="row"><label>严格程度预设</label>
-        <select id="quality_profile">
-            <option value="">（跟随 .env，默认 standard）</option>
-            <option value="standard">standard（与历史默认一致）</option>
-            <option value="strict">strict（更严格：短文档也会被拦下）</option>
-            <option value="loose">loose（更宽松：适合零散笔记）</option>
-            <option value="custom">custom（使用下面的自定义阈值）</option>
-        </select></div>
-    <div class="row"><label>最少有效字符数</label><input type="number" id="quality_min_chars" min="0" step="1" placeholder="默认 50"></div>
-    <div class="row"><label>可读字符占比下限</label><input type="number" id="quality_min_readable_ratio" min="0" max="1" step="0.01" placeholder="默认 0.60（0~1 之间）"></div>
-    <div class="row"><label>乱码比例上限</label><input type="number" id="quality_max_garbled_ratio" min="0" max="1" step="0.01" placeholder="默认 0.05"></div>
-    <div class="row"><label>重复行比例上限</label><input type="number" id="quality_max_repeat_ratio" min="0" max="1" step="0.01" placeholder="默认 0.40"></div>
-    <div class="row"><label>每页字符数下限</label><input type="number" id="quality_min_chars_per_page" min="0" step="1" placeholder="默认 100（PDF/图片，低于此值提示 OCR）"></div>
-    <div class="row"><label>综合质量分及格线</label><input type="number" id="quality_pass_score" min="0" max="100" step="1" placeholder="默认 70"></div>
-    <div class="row"><label>未识别图片容忍数</label><input type="number" id="quality_max_unocr_images" min="0" step="1" placeholder="默认 0：有一张未识别的内嵌图片就停下等你确认"></div>
-</section>
+<details class="card" id="sec-ocr"><summary><span class="num">4</span><h2>OCR</h2><span class="summary" id="sum-ocr"></span></summary><div class="card-body">
+  <p class="hint">默认关闭，不向外部发送文件。</p>
+  <div class="row"><label>模式</label><select id="ocr_mode"><option value="">默认 off</option><option value="off">关闭</option><option value="manual">手动</option><option value="auto">自动</option></select></div>
+  <div class="row"><label>提供方</label><select id="ocr_provider"><option value="">默认 none</option><option value="none">禁用</option><option value="paddle">云端 PaddleOCR</option><option value="local">本机 PaddleOCR</option><option value="stub">离线替身</option></select></div>
+  <div class="row"><label>内嵌图片</label><select id="ocr_image_ocr"><option value="">默认 false</option><option value="true">识别</option><option value="false">忽略</option></select></div>
+  <div class="row"><label>Token</label><input type="password" id="ocr_token" placeholder="留空保持不变"><button type="button" class="ghost" data-clear="ocr_token">清除</button></div>
+  <details class="advanced"><summary>服务与模型</summary>
+    <div class="row"><label>服务地址</label><input type="text" id="ocr_base_url"></div>
+    <div class="row"><label>模型</label><input type="text" id="ocr_model"></div>
+    <div class="row"><label>语言</label><input type="text" id="ocr_lang" placeholder="ch"></div>
+    <div class="row"><label>设备</label><select id="ocr_device"><option value="">默认 cpu</option><option value="cpu">CPU</option><option value="gpu">GPU</option></select></div>
+    <div class="row"><label>文件上限</label><input type="number" id="ocr_max_file_mb" min="1"></div>
+    <div class="row"><label>本机模型目录</label><input type="text" id="ocr_local_model_dir"></div>
+  </details>
+</div></details>
 
-<section class="card" id="sec-ingest">
-    <div class="card-head" role="button" tabindex="0" aria-expanded="true" onclick="toggleSection('sec-ingest')" title="点击展开 / 收起">
-        <span class="num">⑦</span>
-        <h2>入库确认（Ingest Confirm）</h2>
-        <span class="sum" id="sum-ingest"></span>
-        <span class="chev">▾</span>
-    </div>
-    <p class="hint">质量校验通过<b>不等于</b>直接入库：文件会停在「待确认」，由你点「入库」或「跳过」——中间那一步永远由你决定。<br>
-        <b>always</b> 每个文件都问你（默认，最稳）；<b>auto</b> 让建议说话——「建议直接入库」的自动放行，
-        提示「再看一眼 / 谨慎入库」的仍会停下问你；<b>off</b> 通过校验就直接入库（不推荐：错内容也会写进知识库）。<br>
-        留空表示沿用 .env / 内置默认值；改完需重启服务生效。上传卡片上还有「本次运行内全部允许」的临时开关（重启即失效）。</p>
-    <p id="ingestState" class="note-line"></p>
-    <div class="row"><label>入库确认方式</label>
-        <select id="ingest_confirm">
-            <option value="">（跟随 .env，默认 always）</option>
-            <option value="always">always：每个文件都停下来等我确认（推荐）</option>
-            <option value="auto">auto：建议入库的自动放行，其余停下来问我</option>
-            <option value="off">off：不再确认，通过校验就直接入库</option>
-        </select></div>
-    <div class="row"><label>待确认保留时长</label><input type="number" id="ingest_ttl_hours" min="0" step="1" placeholder="小时，默认 24；超时按「跳过」处理（不删资料，可随时补确认）"></div>
-</section>
+<details class="card" id="sec-access"><summary><span class="num">5</span><h2>应用与访问</h2><span class="summary" id="sum-access"></span></summary><div class="card-body">
+  <div class="row"><label>上传上限</label><input type="number" id="app_max_upload_size" min="1" placeholder="字节，默认 104857600"></div>
+  <div class="row"><label>允许扩展名</label><input type="text" id="app_allowed_extensions" placeholder=".txt,.md,.pdf,.docx"></div>
+  <div class="row"><label>日志级别</label><select id="app_log_level"><option value="">默认 INFO</option><option value="DEBUG">DEBUG</option><option value="INFO">INFO</option><option value="WARNING">WARNING</option><option value="ERROR">ERROR</option></select></div>
+  <div class="row"><label>技能路由</label><select id="app_skill_routing"><option value="">默认 off</option><option value="off">关闭</option><option value="on">开启</option></select></div>
+  <div class="row"><label>生成方式</label><select id="app_generation_mode" disabled><option value="upstream">LightRAG 上游</option></select></div>
+  <div class="subhead">局域网设备</div>
+  <div class="pair-box"><div id="accessPairUrl" class="pair-url">读取中…</div><button type="button" id="accessCopyUrl" class="ghost">复制地址</button><button type="button" id="accessDevicesRefresh" class="ghost">刷新</button></div>
+  <div id="accessRequestList" class="device-list"></div>
+  <div id="accessDeviceList" class="device-list"></div>
+  <div class="subhead">记忆</div>
+  <div class="row"><label>状态</label><span id="memoryState" class="muted">读取中…</span></div>
+  <div class="row"><label>记录数</label><span id="memoryCount" class="muted">—</span></div>
+  <p class="note">M2：原始对话持久化与 M5 记忆管理页已提供。<a href="/memory" target="_blank" rel="noopener">打开记忆管理</a> · <a href="/api/memory/items" target="_blank" rel="noopener">查看 JSON</a></p>
+</div></details>
 
-<section class="card" id="sec-inbox">
-    <div class="card-head" role="button" tabindex="0" aria-expanded="true" onclick="toggleSection('sec-inbox')" title="点击展开 / 收起">
-        <span class="num">⑧</span>
-        <h2>文件夹轮询（收件箱自动入库）</h2>
-        <span class="sum" id="sum-inbox"></span>
-        <span class="chev">▾</span>
-    </div>
-    <p class="hint">把文件<b>复制或移动到用户数据目录的 <code>inbox</code></b> 就会自动入库：程序每 N 秒扫一次，
-        等文件「长稳」（连续两轮大小不变）后受理，原件移动到 <code>ProfileAI\data\originals\年月\</code> 留档，
-        内容完全相同（sha256 一致）的文件不再入库第二次（归档到 <code>inbox\_taken</code>）。<br>
-        它与网页上传<b>走同一条流水线</b>：解析、质检、留档规则完全一致；不一样的只有
-        <b>入库确认</b>（本卡片单独设置，默认 auto）。受理不了的文件（类型不支持 / 超过上传上限）
-        会移进 <code>inbox\_failed</code> 并附一份 <code>.reason.txt</code>，<b>不会删除</b>。<br>
-        留空表示沿用 .env / 内置默认值（开关 false、间隔 10 秒、确认 always）；改完需重启服务生效。
-        看进度请打开 <a href="/files">文件管理</a> 页。</p>
-    <p id="inboxState" class="note-line"></p>
-    <div class="row"><label>启用文件夹轮询</label>
-        <select id="inbox_enabled">
-            <option value="">（跟随默认值：关闭）</option>
-            <option value="true">开启：放进用户数据目录 inbox 的文件自动入库</option>
-            <option value="false">关闭：收件箱不再被扫描（文件原样留着）</option>
-        </select></div>
-    <div class="row"><label>扫描间隔（秒）</label>
-        <input type="number" id="inbox_poll_seconds" min="3" max="600" step="1" placeholder="默认 10（3~600）；间隔越短越及时，也越频繁读盘"></div>
-    <div class="row"><label>收件箱入库确认</label>
-        <select id="inbox_confirm">
-            <option value="">（跟随 .env，默认 auto）</option>
-            <option value="always">always：文件夹来的文件也逐个问我</option>
-            <option value="auto">auto：建议入库的自动放行，其余停下来问我（推荐）</option>
-            <option value="off">off：通过质检就直接入库（不推荐）</option>
-        </select></div>
-</section>
-
-<section class="card" id="sec-ocr">
-    <div class="card-head" role="button" tabindex="0" aria-expanded="true" onclick="toggleSection('sec-ocr')" title="点击展开 / 收起">
-        <span class="num">⑨</span>
-        <h2>OCR 文字识别</h2>
-        <span class="sum" id="sum-ocr"></span>
-        <span class="chev">▾</span>
-    </div>
-    <p class="hint">
-        用于扫描件、图片，以及 Word / PPT / PDF 里的内嵌图片。默认 <b>OCR_MODE=off</b>：程序不向任何外部服务发送文件，需要识别的文件只会被拦下并提示。<br>
-        <b>云端 PaddleOCR-VL（paddle）</b>会把文件发送到外部服务；<b>本机 PaddleOCR（local）</b>在本机识别、不出网（需自行安装）。
-        内嵌图片默认会先把文档停在「需要识别」状态，只有你点「识别图片」才真正外发。
-    </p>
-    <p id="ocrState" class="note-line"></p>
-    <div class="row"><label>OCR 模式</label>
-        <select id="ocr_mode">
-            <option value="">（跟随 .env，默认 off）</option>
-            <option value="off">off：完全不启用（不外发）</option>
-            <option value="manual">manual：网页上点按钮才识别（推荐）</option>
-            <option value="auto">auto：检测到需要即自动识别（会消耗配额）</option>
-        </select></div>
-    <div class="row"><label>OCR 提供方</label>
-        <select id="ocr_provider">
-            <option value="">（跟随 .env，默认 paddle）</option>
-            <option value="paddle">云端 PaddleOCR-VL（会外发文件）</option>
-            <option value="local">本机 PaddleOCR（不外发，需安装 paddleocr）</option>
-            <option value="stub">离线替身（仅测试，不识别真实内容）</option>
-            <option value="none">禁用（即使填了 Token 也不外发）</option>
-        </select></div>
-    <div class="row"><label>内嵌图片纳入 OCR</label>
-        <select id="ocr_image_ocr">
-            <option value="">（跟随 .env，默认纳入）</option>
-            <option value="true">是：Word/PPT/PDF 里的图片要先识别才放行</option>
-            <option value="false">否：忽略图片，只入库正文</option>
-        </select></div>
-    <div class="row"><label>识别语言</label><input type="text" id="ocr_lang" placeholder="默认 ch（中文）；英文可填 en"></div>
-    <div class="row"><label>本机识别设备</label>
-        <select id="ocr_device">
-            <option value="">（跟随 .env，默认 cpu）</option>
-            <option value="cpu">cpu</option>
-            <option value="gpu">gpu</option>
-        </select></div>
-    <div class="row"><label>云端作业地址</label><input type="text" id="ocr_base_url" placeholder="默认官方 PaddleOCR-VL 作业地址；可换成自建服务"></div>
-    <div class="row"><label>云端模型名</label><input type="text" id="ocr_model" placeholder="默认 PaddleOCR-VL-1.6"></div>
-    <div class="row"><label>OCR Token</label><input type="password" id="ocr_token" placeholder="留空表示保持现有值不变（只写在这里，不会出现在代码里）"><button type="button" class="btn-clear" data-clear-secret="ocr_token" hidden>清除</button></div>
-    <div class="row"><label>OCR 单文件上限</label><input type="number" id="ocr_max_file_mb" min="1" step="1" placeholder="单位 MB，默认 50"></div>
-    <div class="row"><label>本机模型目录</label><input type="text" id="ocr_local_model_dir" placeholder="留空=用 PaddleOCR 默认缓存目录"></div>
-</section>
-
-<section class="card" id="sec-app">
-    <div class="card-head" role="button" tabindex="0" aria-expanded="true" onclick="toggleSection('sec-app')" title="点击展开 / 收起">
-        <span class="num">⑩</span>
-        <h2>上传与运行参数</h2>
-        <span class="sum" id="sum-app"></span>
-        <span class="chev">▾</span>
-    </div>
-    <p class="hint">上传限额、允许的文件类型、日志级别、问答技能路由与回答生成方式（服务端参数，改完需重启生效）。</p>
-    <div class="row"><label>上传大小上限</label><input type="number" id="app_max_upload_size" min="1" step="1" placeholder="单位字节，例如 20971520=20MB；留空=默认100MB"></div>
-    <div class="row"><label>允许的扩展名</label><input type="text" id="app_allowed_extensions" placeholder="逗号分隔，例如 .txt,.md,.pdf,.docx"></div>
-    <div class="row"><label>日志级别</label>
-        <select id="app_log_level">
-            <option value="">（不修改）</option>
-            <option value="DEBUG">DEBUG</option>
-            <option value="INFO">INFO</option>
-            <option value="WARNING">WARNING</option>
-            <option value="ERROR">ERROR</option>
-        </select></div>
-    <div class="row"><label>问答技能路由</label>
-        <select id="app_skill_routing">
-            <option value="">（不修改：跟随 .env / 默认关闭）</option>
-            <option value="off">关闭：/chat 直通 LightRAG</option>
-            <option value="on">开启：优先走技能（文本问答 / 图片查找）</option>
-        </select>
-        <span class="sub">开启后图片问题返回 [img-n] 图片卡片；保存后需重启生效。默认关闭。</span>
-    </div>
-    <div class="row"><label>回答生成方式</label>
-        <select id="app_generation_mode" disabled>
-            <option value="upstream" selected>LightRAG 上游</option>
-        </select>
-        <span class="sub">生成模型由上方「生成模型」统一配置。</span>
-    </div>
-    <div class="row"><label>局域网设备授权</label>
-        <button type="button" id="accessDevicesRefresh" class="btn-clear">刷新设备</button>
-        <span class="sub">平板直接打开聊天地址；这里出现设备后点一次“允许”，无需输入授权码或设备名。</span>
-    </div>
-    <div class="access-pair-box" id="accessPairBox">
-        <div class="access-connect-icon">↗</div>
-        <div class="access-pair-copy">
-            <strong>平板 / 手机直接打开这个地址</strong>
-            <div class="access-pair-url" id="accessPairUrl"></div>
-            <button type="button" class="access-copy" id="accessCopyUrl">复制地址</button>
-            <div>打开后会自动发送连接请求，不需要先进入单独页面或输入六位码。</div>
-        </div>
-    </div>
-    <div class="row"><label>等待允许</label>
-        <div class="access-device-list" id="accessRequestList">
-            <div class="access-device-empty">读取中…</div>
-        </div>
-    </div>
-    <div class="row"><label>已授权设备</label>
-        <div class="access-device-list" id="accessDeviceList">
-            <div class="access-device-empty">读取中…</div>
-        </div>
-    </div>
-</section>
-
-<section class="card" id="sec-memory">
-    <div class="card-head" role="button" tabindex="0" aria-expanded="true" onclick="toggleSection('sec-memory')" title="点击展开 / 收起">
-        <span class="num">M</span>
-        <h2>记忆系统</h2>
-        <span class="sum" id="sum-memory"></span>
-        <span class="chev">▾</span>
-    </div>
-    <p class="hint">
-        M2：原始对话持久化、Tier 1 快记忆与上下文注入。M5 记忆管理页已提供；
-        可查看/确认/拒绝/编辑/删除，写操作仅限本机。
-        开关在 <code>.env</code> / <code>deploy/.env.docker</code> 的 <code>MEMORY_*</code>，改完需重启。
-    </p>
-    <div class="row"><label>持久化状态</label><span id="memoryState" class="muted">读取中...</span></div>
-    <div class="row"><label>记忆条数</label><span id="memoryCount" class="muted">—</span></div>
-    <div class="row"><label>上下文注入</label><span id="memoryContext" class="muted">—</span></div>
-    <div class="row"><label>提取队列</label><span id="memoryQueue" class="muted">—</span></div>
-    <div class="row"><label>数据库</label><span id="memoryPath" class="muted">—</span></div>
-    <div class="row"><label>管理页面</label><a href="/memory" target="_blank" rel="noopener">打开记忆管理（M5）</a><span class="sub">写操作仅限本机</span></div>
-    <div class="row"><label>管理接口</label><a href="/api/memory/items" target="_blank" rel="noopener">/api/memory/items</a><span class="sub">只读 JSON；写接口见 /docs</span></div>
-</section>
-
-
-<section class="card" id="sec-status">
-    <div class="card-head" role="button" tabindex="0" aria-expanded="true" onclick="toggleSection('sec-status')" title="点击展开 / 收起">
-        <span class="num">⑫</span>
-        <h2>生效配置（只读）</h2>
-        <span class="sum" id="sum-status"></span>
-        <span class="chev">▾</span>
-    </div>
-    <p class="hint">左边是项目，右边是当前实际生效值；显示“—”表示该项未设置。</p>
-    <div class="row"><label>配置文件</label><span id="fileinfo" class="muted file-info">读取中...</span></div>
-    <h2 class="subhead tight">知识库侧（LightRAG）</h2>
-    <table id="effectiveTable"><tbody></tbody></table>
-    <h2 class="subhead">应用侧</h2>
-    <table id="appTable"><tbody></tbody></table>
-    <h2 class="subhead">解析 · 质量校验 · OCR</h2>
-    <table id="qualityTable"><tbody></tbody></table>
-    <div id="injected" class="chips"></div>
-
-    <h2 class="subhead">连接测试</h2>
-        <ul id="testresult" class="test-list"><li class="muted">（尚未测试连接）</li></ul>
-</section>
-
+<details class="card" id="sec-diagnostics"><summary><span class="num">6</span><h2>诊断</h2><span class="summary" id="sum-diagnostics"></span></summary><div class="card-body">
+  <div class="row"><label>配置文件</label><span id="settingsFile" class="muted">读取中…</span></div>
+  <div class="row"><label>重启状态</label><span id="restartState" class="muted">—</span></div>
+  <p><button type="button" id="testBtn" class="btn">测试连接</button></p>
+  <ul id="testList" class="checks"></ul>
+  <table><tbody id="effectiveRows"></tbody></table>
+</div></details>
 </main>
 </div>
-
-<div class="bar">
-    <button class="btn-primary" id="saveBtn" onclick="save()">保存配置</button>
-    <button class="btn-plain" id="testBtn" onclick="test()">测试连接</button>
-    <button class="btn-plain" onclick="reload()">重新加载</button>
-    <button class="btn-plain only-narrow" onclick="expandAll(true)">展开全部</button>
-    <span id="status" class="status" role="status" aria-live="polite">提示：保存后需重启服务才生效（双击项目根目录的 appctl.vbs restart，全程无窗口）</span>
-    <!-- 未保存改动计数：单独一个元素，否则被后面的操作文案覆盖掉就再也看不见了。
-         刻意不给它 aria-live：每敲一个字都会播报一遍，读屏用户会被淹掉。 -->
-    <span id="dirty" class="dirty" hidden></span>
-</div>
-
+<div class="bar"><button type="button" id="saveBtn" class="btn primary">保存配置</button><button type="button" id="reloadBtn" class="btn">重新加载</button><span id="dirty" class="dirty" hidden></span><span id="status" class="status"></span></div>
 <script>
-const FIELDS = [
-    ["llm", "binding"], ["llm", "model"], ["llm", "host"], ["llm", "api_key"],
-    ["embedding", "binding"], ["embedding", "model"], ["embedding", "host"], ["embedding", "api_key"], ["embedding", "dim"], ["embedding", "send_dim"],
-    ["rerank", "binding"], ["rerank", "model"], ["rerank", "host"], ["rerank", "api_key"],
-    ["vector_store", "type"], ["vector_store", "qdrant_url"],
-    ["rag", "chunk_size"], ["rag", "chunk_overlap"], ["rag", "top_k"], ["rag", "chunk_top_k"],
-    ["graph", "working_dir"], ["graph", "input_dir"],
-    ["paths", "lightrag_home"],
-    ["app", "max_upload_size"], ["app", "allowed_extensions"], ["app", "log_level"],
-    ["app", "skill_routing"], ["app", "generation_mode"],
-    // 入库质量校验（Quality Gate）
-    // Phase 18：不再有「质量校验开关」—— QUALITY_ENABLED 已失效，页面不给入口、也不回写它
-    ["quality", "profile"], ["quality", "min_chars"], ["quality", "min_readable_ratio"],
-    ["quality", "max_garbled_ratio"], ["quality", "max_repeat_ratio"], ["quality", "min_chars_per_page"],
-    ["quality", "pass_score"], ["quality", "max_unocr_images"],
-    // 入库确认门（Phase 15）：通过质检后是否停下来等确认
-    ["ingest", "confirm"], ["ingest", "ttl_hours"],
-    // 文件夹轮询（Phase 16）：ProfileAI\data\inbox\ 自动入库 + 它自己的确认门
-    ["inbox", "enabled"], ["inbox", "poll_seconds"], ["inbox", "confirm"],
-    // OCR 文字识别
-    ["ocr", "mode"], ["ocr", "provider"], ["ocr", "image_ocr"], ["ocr", "lang"], ["ocr", "device"],
-    ["ocr", "base_url"], ["ocr", "model"], ["ocr", "token"], ["ocr", "max_file_mb"], ["ocr", "local_model_dir"],
+const SPECS = [
+ ["llm","binding"],["llm","model"],["llm","host"],["llm","api_key"],
+ ["embedding","binding"],["embedding","model"],["embedding","host"],["embedding","api_key"],["embedding","dim"],["embedding","send_dim"],
+ ["rerank","binding"],["rerank","model"],["rerank","host"],["rerank","api_key"],
+ ["vector_store","type"],["vector_store","qdrant_url"],
+ ["rag","chunk_size"],["rag","chunk_overlap"],["rag","top_k"],["rag","chunk_top_k"],
+ ["paths","lightrag_home"],["graph","working_dir"],["graph","input_dir"],
+ ["quality","profile"],["quality","min_chars"],["quality","min_readable_ratio"],["quality","max_garbled_ratio"],["quality","max_repeat_ratio"],["quality","min_chars_per_page"],["quality","pass_score"],["quality","max_unocr_images"],
+ ["ingest","confirm"],["ingest","ttl_hours"],["inbox","enabled"],["inbox","poll_seconds"],["inbox","confirm"],
+ ["ocr","mode"],["ocr","provider"],["ocr","image_ocr"],["ocr","token"],["ocr","base_url"],["ocr","model"],["ocr","lang"],["ocr","device"],["ocr","max_file_mb"],["ocr","local_model_dir"],
+ ["app","max_upload_size"],["app","allowed_extensions"],["app","log_level"],["app","skill_routing"],["app","generation_mode"]
 ];
-
-// 密钥字段：留空 = 保持原值（只显示掩码提示）
-const SECRET_FIELDS = ["api_key", "token"];
-// 三态字段："" / "true" / "false"
-const TRI_STATE_FIELDS = ["send_dim", "enabled", "image_ocr"];
-
-function el(group, key) { return document.getElementById(group + "_" + key); }
-
-// 密钥字段的 id：留空 = 保持原值，所以"空"不算改动，
-// 否则一打开页面什么都没做就会显示"有 N 项未保存"。
-const SECRET_IDS = {};
-const SECRET_PAIRS = {};     // id -> [group, key]，保存时拼 clear_secrets 用
-// 已确认「清除」、但还没保存的密钥 id：空值在密钥字段上表示保持原值，
-// 所以「清除」只能单独记一笔，不能靠把输入框清空来表达。
-var CLEAR_PENDING = {};
-// 磁盘上密钥的掩码文案（空 = 未配置），撤销清除 / 重新加载时还原占位符
-var SECRET_DISPLAY = {};
-FIELDS.forEach(function (pair) {
-    if (SECRET_FIELDS.indexOf(pair[1]) >= 0) {
-        const id = pair[0] + "_" + pair[1];
-        SECRET_IDS[id] = true;
-        SECRET_PAIRS[id] = [pair[0], pair[1]];
-    }
-});
-
-// ---------- 未保存改动（脏状态）----------
-// BASELINE = load() 完成时每个字段的快照，DIRTY = 与快照不同的字段 id。
-// 为什么用 input 而不是 change：文本框只在失焦时才触发 change，
-// 用户改完最后一个字段直接点「重新加载」就漏掉了。
-var BASELINE = {};
-var DIRTY = {};
-// 字段的 <label> 没有 for，顺手把标签文本收起来，供"会丢哪几项"的说明用
-var FIELD_LABELS = {};
-
-function fieldLabel(id) { return FIELD_LABELS[id] || id; }
-function dirtyIds() { return Object.keys(DIRTY); }
-
-function isDirty(node) {
-    if (BASELINE[node.id] === undefined) { return false; }   // 不在 FIELDS 里的控件不参与
-    // 已标记清除的密钥：输入框虽然是空的（与快照相同），但确实是一项未保存的改动。
-    // 必须放在"值没变"判断之前，否则空值会先被当成未改动。
-    if (SECRET_IDS[node.id] && CLEAR_PENDING[node.id]) { return true; }
-    if (node.value === BASELINE[node.id]) { return false; }
-    // 密钥留空 = 保持原值，空值一律不算改动（快照本身也是空的，清空后同理）
-    if (SECRET_IDS[node.id] && node.value.trim() === "") { return false; }
-    return true;
-}
-
-function refreshDirty(node) {
-    if (!node || BASELINE[node.id] === undefined) { return; }
-    if (isDirty(node)) { DIRTY[node.id] = true; } else { delete DIRTY[node.id]; }
-    renderDirty();
-}
-
-function renderDirty() {
-    const node = document.getElementById("dirty");
-    if (!node) { return; }
-    const count = dirtyIds().length;
-    node.textContent = count ? ("有 " + count + " 项未保存的改动") : "";
-    node.hidden = count === 0;
-}
-
-function snapshotFields() {
-    BASELINE = {};
-    FIELDS.forEach(function (pair) {
-        const node = el(pair[0], pair[1]);
-        if (node) { BASELINE[node.id] = node.value; }
-    });
-    DIRTY = {};
-    renderDirty();
-}
-
-// ---------- 密钥清除（C2）----------
-// 密钥留空保存 = 保持原值，因此「清除」不能靠提交空值表达：
-// 这里只做页面上的标记，保存时另行提交 clear_secrets: [[group, key], …]。
-function secretButton(id) {
-    return document.querySelector('[data-clear-secret="' + id + '"]');
-}
-
-function secretPlaceholder(display) {
-    return display ? ("已配置 " + display + "，留空保持不变") : "留空表示不设置";
-}
-
-function renderSecretButton(id) {
-    const btn = secretButton(id);
-    if (!btn) { return; }
-    const pending = !!CLEAR_PENDING[id];
-    const configured = !!SECRET_DISPLAY[id];
-    // 没配过、也没标记清除时不给入口，免得点一个没有意义的按钮
-    btn.hidden = !(configured || pending);
-    btn.classList.toggle("pending", pending);
-    btn.textContent = pending ? "撤销清除" : "清除";
-    btn.setAttribute("aria-pressed", pending ? "true" : "false");
-    btn.title = pending ? "撤销清除，继续使用已保存的密钥" : "清除已保存的密钥（保存后生效）";
-}
-
-function setSecretPending(id, pending, keepValue) {
-    const node = document.getElementById(id);
-    if (pending) { CLEAR_PENDING[id] = true; } else { delete CLEAR_PENDING[id]; }
-    if (node) {
-        // 只有显式标记 / 撤销清除才清空输入框；
-        // 「标记后又输入了新密钥」的自动撤销必须保留用户刚敲进去的值。
-        if (!keepValue) { node.value = ""; }
-        node.placeholder = pending
-            ? "保存后将清除（保存前仍保留原值）"
-            : secretPlaceholder(SECRET_DISPLAY[id] || "");
-    }
-    renderSecretButton(id);
-    if (node) { refreshDirty(node); }
-}
-
-function initSecretClear() {
-    document.querySelectorAll("[data-clear-secret]").forEach(function (btn) {
-        btn.addEventListener("click", function () {
-            const id = btn.getAttribute("data-clear-secret");
-            if (CLEAR_PENDING[id]) { setSecretPending(id, false); return; }
-            const node = document.getElementById(id);
-            const typed = node ? node.value.trim() : "";
-            askConfirm({
-                title: "清除已保存的密钥？",
-                body: "保存后这条密钥会从配置文件里移除，依赖它的模型 / 服务将不可用"
-                    + "（重启服务后完全生效）。",
-                detail: typed ? "输入框里还有未保存的新密钥；确认清除会以「清除」为准。" : "",
-                confirmText: "标记为清除",
-                cancelText: "保留",
-                danger: true
-            }).then(function (ok) { if (ok) { setSecretPending(id, true); } });
-        });
-    });
-}
-
-// 一个监听器管 50 个字段：字段本身是静态的，但 load() 会反复重写 value，
-// 逐字段挂监听就得在每次重绘后重挂，漏一个就少一个脏字段；冒泡没有这个问题。
-function initDirtyTracking() {
-    const box = document.querySelector(".main");
-    if (!box) { return; }
-    const handler = function (event) {
-        const node = event.target;
-        if (!node || !node.id || (node.tagName !== "INPUT" && node.tagName !== "SELECT")) { return; }
-        // 标记清除后又输入了新密钥：以新输入的值为准，自动撤销清除标记
-        if (SECRET_IDS[node.id] && CLEAR_PENDING[node.id] && node.value.trim() !== "") {
-            setSecretPending(node.id, false, true);   // true = 别把刚输入的值清掉
-        }
-        refreshDirty(node);
-    };
-    box.addEventListener("input", handler);
-    box.addEventListener("change", handler);
-}
-
-window.addEventListener("beforeunload", function (event) {
-    if (!dirtyIds().length) { return; }
-    event.preventDefault();
-    event.returnValue = "";   // 现代浏览器只认"设置过 returnValue"，提示文案由浏览器给
-});
-
-// ui.js 没加载出来时（缓存 / 404）退化为原生 confirm：宁可难看，
-// 也不能把"会丢弃改动"这件事悄悄吞掉。
-function askConfirm(opts) {
-    if (window.PAI && typeof window.PAI.confirm === "function") { return window.PAI.confirm(opts); }
-    return Promise.resolve(window.confirm(opts.title + "\n\n" + opts.body + (opts.detail ? "\n" + opts.detail : "")));
-}
-
-function notify(text, kind) {
-    if (window.PAI && typeof window.PAI.toast === "function") { window.PAI.toast(text, kind); }
-}
-
-function setStatus(text, ok) {
-    const node = document.getElementById("status");
-    node.textContent = text;
-    // 三态：undefined = 中性、true = 成功、false = 失败（与保存/测试的调用点一致）
-    node.className = "status" + (ok === true ? " ok" : (ok === false ? " bad" : ""));
-}
-
-async function load(keepStatus) {
-    if (!keepStatus) { setStatus("读取配置中..."); }
-    try {
-        const response = await fetch("/api/settings");
-        // 先留一份可解析的响应体：500 时后端通常仍带 {detail/error}，
-        // 直接 .json() 后取 data.settings 会抛 TypeError，用户只看到 JS 报错。
-        const data = await response.json().catch(function () { return null; });
-        if (!response.ok) {
-            setStatus("读取失败：" + describeError(data), false);
-            return;
-        }
-        if (!data || !data.settings) {
-            setStatus("读取失败：服务端返回的数据不完整", false);
-            return;
-        }
-        FIELDS.forEach(function (pair) {
-            const node = el(pair[0], pair[1]);
-            if (!node) { return; }
-            const value = (data.settings[pair[0]] || {})[pair[1]];
-            if (SECRET_FIELDS.indexOf(pair[1]) >= 0) {
-                SECRET_DISPLAY[node.id] = value ? String(value) : "";
-                delete CLEAR_PENDING[node.id];   // 重新加载 = 回到磁盘状态，撤销未保存的清除标记
-                node.value = "";
-                node.placeholder = secretPlaceholder(SECRET_DISPLAY[node.id]);
-                renderSecretButton(node.id);
-            } else if (TRI_STATE_FIELDS.indexOf(pair[1]) >= 0) {
-                const text = String(value === null || value === undefined ? "" : value).toLowerCase();
-                node.value = (text === "true") ? "true" : ((text === "false") ? "false" : "");
-            } else {
-                node.value = (value === null || value === undefined) ? "" : value;
-            }
-        });
-        // 值都写完了才拍快照：这是"磁盘上的配置"，之后与它不一致的就是未保存改动
-        snapshotFields();
-        document.getElementById("fileinfo").textContent = data.settings_file + (data.settings_exists ? "（已存在）" : "（尚未创建，保存后生成）");
-        renderEffective(data);
-        renderSummaries(data);
-        renderIngestHint(data);
-        renderInboxHint(data);
-        renderOcrHint(data);
-        refreshMemoryStatus();
-        if (!keepStatus) {
-            setStatus(data.restart_needed
-                ? "已加载：有改动等待重启生效（appctl.vbs restart）"
-                : "已加载");
-        }
-    } catch (err) {
-        setStatus("读取失败：" + err, false);
-    }
-}
-
-// 「重新加载」= 丢弃页面上的改动、回到磁盘上的配置。
-// 原来直接 load()：改了几十个字段后点一下全没了，连问都不问一句。
-function reload() {
-    const ids = dirtyIds();
-    if (!ids.length) { load(); return; }
-    const names = ids.map(fieldLabel);
-    const shown = names.slice(0, 8).join("、") + (names.length > 8 ? "…" : "");
-    askConfirm({
-        title: "放弃未保存的改动？",
-        body: "有 " + ids.length + " 项改动还没保存。重新加载会用磁盘上的配置覆盖页面，这些改动会丢失"
-            + "（「保存配置」不会替你保留它们）。",
-        detail: "会丢失：" + shown + (names.length > 8 ? "（共 " + names.length + " 项）" : ""),
-        confirmText: "放弃并重新加载",
-        cancelText: "继续编辑",
-        danger: true
-    }).then(function (ok) { if (ok) { load(); } });
-}
-
-// 保存失败的原因后端给的是 {error, messages: [...]}：messages 是逐条中文说明，
-// 原样 JSON.stringify(data.detail) 等于把裸 JSON 甩给用户。
-function describeError(data) {
-    if (!data) { return "服务端没有返回内容"; }
-    if (Array.isArray(data.messages) && data.messages.length) { return data.messages.join("；"); }
-    const detail = data.detail;
-    if (Array.isArray(detail)) {
-        // FastAPI 的校验错误就是这种形状（detail 是 [{loc,msg,type}, …]）
-        const items = detail.map(function (item) {
-            if (item && typeof item === "object") { return item.msg || item.message || item.error || JSON.stringify(item); }
-            return String(item);
-        });
-        if (items.length) { return items.join("；"); }
-    } else if (detail && typeof detail === "object") {
-        if (Array.isArray(detail.messages) && detail.messages.length) { return detail.messages.join("；"); }
-        if (detail.message) { return String(detail.message); }
-        if (detail.error) { return String(detail.error); }
-    } else if (detail) {
-        return String(detail);
-    }
-    if (data.error) { return String(data.error); }
-    return JSON.stringify(data);
-}
-
-async function save() {
-    // 防重入，与 test() 同一套写法：保存要发 POST、回来还要 load() 重绘整个表单，
-    // 全程几百毫秒到数秒。连点两下就是两次写入 + 两次重绘，状态栏还会互相覆盖
-    // （先返回的那次说"已保存"，后返回的可能说"保存失败"）。
-    const btn = document.getElementById("saveBtn");
-    if (btn && btn.disabled) { return; }
-    const body = {};
-    FIELDS.forEach(function (pair) {
-        const node = el(pair[0], pair[1]);
-        if (!node) { return; }
-        if (!body[pair[0]]) { body[pair[0]] = {}; }
-        body[pair[0]][pair[1]] = node.value.trim();
-    });
-    // 密钥清除单独提交：空字符串在后端表示「保持原值」，表达不了清除。
-    const clears = Object.keys(CLEAR_PENDING).filter(function (id) { return !!SECRET_PAIRS[id]; });
-    if (clears.length) {
-        body.clear_secrets = clears.map(function (id) { return SECRET_PAIRS[id]; });
-    }
-    if (btn) {
-        btn.disabled = true;
-        btn.setAttribute("aria-busy", "true");
-        // 文案保持「保存配置」不动：底栏已经在说"保存中..."，按钮再变一次是噪声；
-        // 这里只需要让它看起来按不动（.bar button[disabled] 已有样式）。
-    }
-    setStatus("保存中...");
-    try {
-        const response = await fetch("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-        const data = await response.json();
-        if (!response.ok) { setStatus("保存失败：" + describeError(data), false); return; }
-        await load(true);
-        // 保存成功后再写状态栏（load 会重绘页面，顺序反了提示就看不见了）
-        const preview = (data && data.ocr_preview) || {};
-        let extra = "";
-        if (preview.reason) {
-            extra = " 注意：OCR 重启后仍不会启用——" + preview.reason;
-        } else if (preview.enabled_after_restart) {
-            extra = " OCR 已设为「" + (preview.configured_mode || "") + "」，重启后启用。";
-        }
-        // 入库确认（Phase 15）：保存值与进程值不同就明说，别让用户以为「保存成功 = 已生效」
-        const gateNow = (data && data.ingest_confirm_effective) || {};
-        const gateSaved = String((((data || {}).settings || {}).ingest || {}).confirm || "");
-        if (gateSaved && gateSaved !== gateNow.mode) {
-            extra += " 入库确认已设为「" + gateSaved + "」，重启后生效（当前仍在用 " + gateNow.mode + "）。";
-        }
-        setStatus(data.note + extra + "（保存时间 " + (data.updated_at || "") + "）", true);
-        // 底栏在手机上会折行、文案又长，再给一条即时反馈
-        notify("配置已保存", "ok");
-    } catch (err) {
-        setStatus("保存失败：" + err, false);
-    } finally {
-        // 必须在 finally 里解锁：上面 `return` 的失败分支和 catch 都要能再点。
-        if (btn) { btn.disabled = false; btn.removeAttribute("aria-busy"); }
-    }
-}
-
-async function test() {
-    const btn = document.getElementById("testBtn");
-    if (btn && btn.disabled) { return; }        // 测试要跑好几秒，连点会叠着发请求
-    if (btn) { btn.disabled = true; btn.textContent = "测试中..."; btn.setAttribute("aria-busy", "true"); }
-    setStatus("正在测试连接...");
-    renderTest([], true);
-    try {
-        const data = await (await fetch("/api/settings/test", { method: "POST" })).json();
-        const checks = data.checks || [];
-        renderTest(checks, false);
-        const failed = checks.filter(function (item) { return !item.ok; }).length;
-        // 明细渲染在 ⑫ 卡片里，而它默认是收起的 —— 不主动展开，底栏只说"存在异常项"，
-        // 用户根本看不到哪一项没过。
-        revealTestResult();
-        const allOk = (data.all_ok === undefined) ? (failed === 0) : data.all_ok;
-        setStatus(failed
-            ? ("测试未通过：" + failed + " / " + checks.length + " 项异常，明细在「生效配置 → 连接测试」")
-            : ("测试全部通过（共 " + checks.length + " 项）"), allOk);
-    } catch (err) {
-        setStatus("测试失败：" + err, false);
-    } finally {
-        if (btn) { btn.disabled = false; btn.removeAttribute("aria-busy"); btn.textContent = "测试连接"; }
-    }
-}
-
-// 刻意走 saveCollapsed()：折叠状态存在 localStorage 里，
-// 只摘 class 的话下次刷新会被存下来的"收起"覆盖回去，用户以为没生效。
-function revealTestResult() {
-    const card = document.getElementById("sec-status");
-    if (!card) { return; }
-    card.classList.remove("collapsed");
-    saveCollapsed();
-    syncExpanded();
-    card.scrollIntoView({ block: "nearest" });
-}
-
-load();
-function renderTest(checks, pending) {
-    const box = document.getElementById("testresult");
-    box.innerHTML = "";
-    if (pending) {
-        const waiting = document.createElement("li");
-        waiting.className = "muted";
-        waiting.textContent = "测试中...";
-        box.appendChild(waiting);
-        return;
-    }
-    (checks || []).forEach(function (item) {
-        const line = document.createElement("li");
-        line.className = item.ok ? "ok" : "bad";
-        line.textContent = (item.ok ? "✓ " : "✗ ") + item.name + "：" + item.detail;
-        box.appendChild(line);
-    });
-}
-
-function renderEffective(data) {
-    const effective = (data && data.lightrag_effective) || {};
-    const rows = [
-        ["生成模型", ["LLM_BINDING", "LLM_MODEL"]],
-        ["生成模型接口地址", ["LLM_BINDING_HOST"]],
-        ["嵌入模型", ["EMBEDDING_BINDING", "EMBEDDING_MODEL"]],
-        ["嵌入模型接口地址", ["EMBEDDING_BINDING_HOST"]],
-        ["向量维度", ["EMBEDDING_DIM"]],
-        ["重排序（Rerank）", ["RERANK_BINDING", "RERANK_MODEL"]],
-        ["向量库类型", ["LIGHTRAG_VECTOR_STORAGE"]],
-        ["知识库数据目录", ["WORKING_DIR"]],
-        ["文档输入目录", ["INPUT_DIR"]]
-    ];
-    const body = document.querySelector("#effectiveTable tbody");
-    body.innerHTML = "";
-    rows.forEach(function (row) {
-        const values = row[1].map(function (key) { return effective[key] ? String(effective[key]) : ""; }).filter(function (item) { return item; });
-        const tr = document.createElement("tr");
-        const th = document.createElement("td");
-        th.textContent = row[0];
-        const td = document.createElement("td");
-        td.textContent = values.length ? values.join(" / ") : "—";
-        tr.appendChild(th);
-        tr.appendChild(td);
-        body.appendChild(tr);
-    });
-    const app = (data && data.app_effective) || {};
-    const sizeBytes = Number(app.max_upload_size || 0);
-    const sizeText = sizeBytes ? (sizeBytes + " 字节（约 " + (sizeBytes / 1048576).toFixed(1) + " MB）") : "—";
-    const routingOn = String(app.skill_routing || "").toLowerCase() === "on";
-    const routingSaved = String(app.skill_routing_saved || "").toLowerCase();
-    const routingText = (routingOn ? "开启（技能优先）" : "关闭（直通 LightRAG）")
-        + (app.skill_routing_restart_needed
-            ? "；已保存为 " + (routingSaved === "on" ? "开启" : "关闭") + "，重启后生效"
-            : "");
-    const genText = "上游 LightRAG（固定 DeepSeek API）";
-    const appRows = [
-        ["LightRAG 地址", app.lightrag_url || "—"],
-        ["上传大小上限", sizeText],
-        ["允许的扩展名", (app.allowed_extensions && app.allowed_extensions.length) ? app.allowed_extensions.join(" ") : "（全部允许）"],
-        ["日志级别", app.log_level || "—"],
-        ["问答技能路由", routingText],
-        ["回答生成方式", genText],
-    ];
-    const appBody = document.querySelector("#appTable tbody");
-    appBody.innerHTML = "";
-    appRows.forEach(function (row) {
-        const tr = document.createElement("tr");
-        const th = document.createElement("td");
-        th.textContent = row[0];
-        const td = document.createElement("td");
-        td.textContent = row[1];
-        tr.appendChild(th);
-        tr.appendChild(td);
-        appBody.appendChild(tr);
-    });
-    const quality = (data && data.quality_effective) || {};
-    const ocr = (data && data.ocr_effective) || {};
-    const preview = (data && data.ocr_preview) || {};
-    const gate = (data && data.ingest_confirm_effective) || {};
-    const gateTtl = (gate.pending_review_ttl_hours === undefined || gate.pending_review_ttl_hours === null)
-        ? 24 : gate.pending_review_ttl_hours;
-    const qualityRows = [
-        ["配置改动是否已生效", (data && data.restart_needed) ? "有改动等待重启（appctl.vbs restart）" : "与当前进程一致"],
-        // Phase 15：确认门的一行结论 + 保留时长（超时按「跳过」处理，不删资料）
-        ["入库确认", gate.mode === "always"
-            ? "always（每个文件都停下来等确认）"
-            : (gate.mode === "auto" ? "auto（建议入库的自动放行，其余停下问）" : "off（通过校验就直接入库）")],
-        ["待确认保留时长", (gateTtl ? (gateTtl + " 小时") : "不自动归档") + "；超时按「跳过」处理（原件与解析结果保留）"],
-        ["质量校验", "恒定开启（没有总开关）"
-            + (quality.switch_ignored ? "；.env 里的 QUALITY_ENABLED=false 已被忽略" : "")],
-        ["严格程度预设", quality.profile || "—"],
-        ["最少有效字符数", quality.min_chars],
-        ["可读字符占比下限", quality.min_readable_ratio],
-        ["乱码比例上限", quality.max_garbled_ratio],
-        ["重复行比例上限", quality.max_repeat_ratio],
-        ["每页字符数下限", quality.min_chars_per_page],
-        ["综合质量分及格线", quality.pass_score],
-        ["未识别图片容忍数", quality.max_unocr_images],
-        ["允许整篇 OCR 的格式", (quality.ocr_routes && quality.ocr_routes.length) ? quality.ocr_routes.join(" / ") : "—"],
-        ["OCR 状态", ocr.enabled
-            ? ("已启用（" + (ocr.provider || "") + "）")
-            : (preview.enabled_after_restart
-                ? "已保存但尚未生效（重启服务后启用）"
-                : (preview.reason ? ("未启用：" + preview.reason) : "未启用（不会外发任何文件）"))],
-        ["OCR 是否外发", ocr.external ? "会把文件发送到外部服务" : "不外发（本机或未启用）"],
-        ["内嵌图片纳入 OCR", ocr.image_ocr ? "是（未识别图片会停下等确认）" : "否（忽略图片，只入库正文）"],
-        ["OCR 语言 / 设备", (ocr.lang || "—") + " / " + (ocr.device || "—")],
-        ["OCR 模型 / 地址", (ocr.model || "—") + " / " + (ocr.base_url || "—")],
-        ["OCR Token", ocr.token_set ? "已配置" : "未配置"],
-        ["OCR 单文件上限", ocr.max_file_mb ? (ocr.max_file_mb + " MB") : "—"],
-        ["本机模型目录", ocr.local_model_dir || "（默认缓存目录）"]
-    ];
-    const qualityBody = document.querySelector("#qualityTable tbody");
-    qualityBody.innerHTML = "";
-    qualityRows.forEach(function (row) {
-        const tr = document.createElement("tr");
-        const th = document.createElement("td");
-        th.textContent = row[0];
-        const td = document.createElement("td");
-        const value = (row[1] === null || row[1] === undefined || row[1] === "") ? "—" : row[1];
-        td.textContent = String(value);
-        tr.appendChild(th);
-        tr.appendChild(td);
-        qualityBody.appendChild(tr);
-    });
-
-    const injectedBox = document.getElementById("injected");
-
-    injectedBox.innerHTML = "";
-    const injected = (data && data.injected_env) || {};
-    const keys = Object.keys(injected);
-    if (keys.length) {
-        const label = document.createElement("span");
-        label.className = "muted injected-label";
-        label.textContent = "将由启动器注入：";
-        injectedBox.appendChild(label);
-        keys.forEach(function (key) {
-            const chip = document.createElement("span");
-            chip.className = "chip";
-            chip.textContent = key + "=" + injected[key];
-            injectedBox.appendChild(chip);
-        });
-    }
-}
-
-// ---------- 分组导航 / 折叠 / 状态摘要（避免设置页一长到底） ----------
+const SECRETS = new Set(["llm.api_key","embedding.api_key","rerank.api_key","ocr.token"]);
 const SECTIONS = [
-    { id: "sec-llm", num: "①", name: "生成模型" },
-    { id: "sec-embedding", num: "②", name: "嵌入模型" },
-    { id: "sec-rerank", num: "③", name: "重排序模型" },
-    { id: "sec-vector", num: "④", name: "向量存储" },
-    { id: "sec-paths", num: "⑤", name: "存储路径" },
-    { id: "sec-quality", num: "⑥", name: "质量校验", badge: "quality" },
-    { id: "sec-ingest", num: "⑦", name: "入库确认", badge: "ingest" },
-    { id: "sec-inbox", num: "⑧", name: "文件夹轮询", badge: "inbox" },
-    { id: "sec-ocr", num: "⑨", name: "OCR 识别", badge: "ocr" },
-    { id: "sec-app", num: "⑩", name: "上传与运行" },
-    { id: "sec-memory", num: "M", name: "记忆系统" },
-    { id: "sec-status", num: "⑫", name: "生效配置" }
+ {id:"sec-models",num:"1",name:"模型"},{id:"sec-knowledge",num:"2",name:"知识库"},
+ {id:"sec-ingest",num:"3",name:"导入"},{id:"sec-ocr",num:"4",name:"OCR"},
+ {id:"sec-access",num:"5",name:"访问"},{id:"sec-diagnostics",num:"6",name:"诊断"}
 ];
-const COLLAPSE_KEY = "profile-ai.settings.collapsed";
-
-function buildNav() {
-    const box = document.getElementById("navlist");
-    if (!box) { return; }
-    box.innerHTML = "";
-    SECTIONS.forEach(function (item) {
-        const node = document.createElement("div");
-        node.className = "nav-item";
-        node.setAttribute("data-target", item.id);
-        const ico = document.createElement("span");
-        ico.className = "ico";
-        ico.textContent = item.num;
-        const name = document.createElement("span");
-        name.textContent = item.name;
-        node.appendChild(ico);
-        node.appendChild(name);
-        if (item.badge) {
-            const badge = document.createElement("span");
-            badge.className = "state";
-            badge.id = "nav-" + item.badge;
-            node.appendChild(badge);
-        }
-        node.setAttribute("role", "button");
-        node.setAttribute("tabindex", "0");
-        node.onclick = function () { gotoSection(item.id); };
-        bindActivateKey(node);       // 键盘路径复用同一个 onclick
-        box.appendChild(node);
-    });
-}
-
-function readCollapsed() {
-    try {
-        const raw = localStorage.getItem(COLLAPSE_KEY);
-        if (!raw) { return null; }
-        const list = JSON.parse(raw);
-        return Array.isArray(list) ? list : null;
-    } catch (err) {
-        return null;   // 隐私模式 / 禁用存储时退回默认
-    }
-}
-
-function saveCollapsed() {
-    const list = [];
-    SECTIONS.forEach(function (item) {
-        const card = document.getElementById(item.id);
-        if (card && card.classList.contains("collapsed")) { list.push(item.id); }
-    });
-    try { localStorage.setItem(COLLAPSE_KEY, JSON.stringify(list)); } catch (err) { /* 忽略 */ }
-}
-
-function applyCollapsed() {
-    // 默认只展开第①组，其余收起：整页高度从「要滚很久」变成基本一屏
-    const saved = readCollapsed();
-    const list = saved || SECTIONS.filter(function (item) { return item.id !== "sec-llm"; })
-        .map(function (item) { return item.id; });
-    SECTIONS.forEach(function (item) {
-        const card = document.getElementById(item.id);
-        if (!card) { return; }
-        card.classList.toggle("collapsed", list.indexOf(item.id) >= 0);
-    });
-    syncExpanded();
-}
-
-function toggleSection(id) {
-    const card = document.getElementById(id);
-    if (!card) { return; }
-    card.classList.toggle("collapsed");
-    saveCollapsed();
-    syncExpanded();
-}
-
-function expandAll(expand) {
-    SECTIONS.forEach(function (item) {
-        const card = document.getElementById(item.id);
-        if (!card) { return; }
-        card.classList.toggle("collapsed", !expand);
-    });
-    saveCollapsed();
-    syncExpanded();
-}
-
-function setActiveNav(id) {
-    document.querySelectorAll(".nav-item").forEach(function (node) {
-        node.classList.toggle("active", node.getAttribute("data-target") === id);
-    });
-}
-
-function gotoSection(id) {
-    const card = document.getElementById(id);
-    if (!card) { return; }
-    card.classList.remove("collapsed");
-    saveCollapsed();
-    syncExpanded();
-    setActiveNav(id);
-    card.scrollIntoView({ behavior: "smooth", block: "start" });
-}
-
-function initScrollSpy() {
-    if (!("IntersectionObserver" in window)) { setActiveNav("sec-llm"); return; }
-    const observer = new IntersectionObserver(function (entries) {
-        entries.forEach(function (entry) {
-            if (entry.isIntersecting) { setActiveNav(entry.target.id); }
-        });
-    }, { rootMargin: "-72px 0px -68% 0px", threshold: 0 });
-    SECTIONS.forEach(function (item) {
-        const card = document.getElementById(item.id);
-        if (card) { observer.observe(card); }
-    });
-}
-
-// 折叠状态下的「当前值摘要」：不用展开就能看到关键状态
-function setSummary(id, values, fallback) {
-    const node = document.getElementById(id);
-    if (!node) { return; }
-    const text = values.filter(function (item) { return item; }).join(" · ") || fallback;
-    node.textContent = text;
-    node.title = text;
-}
-
-function renderSummaries(data) {
-    const settings = (data && data.settings) || {};
-    const lr = (data && data.lightrag_effective) || {};
-    const app = (data && data.app_effective) || {};
-    const quality = (data && data.quality_effective) || {};
-    const ocr = (data && data.ocr_effective) || {};
-    const preview = (data && data.ocr_preview) || {};
-    // 有些值在配置里就是**字符串** "null"（实测：rerank.binding 的值就是 "null"，
-    // 含义是"不启用重排序"）。原样输出会让摘要显示一个用户看不懂的 null，
-    // 这里统一归一化成空串，交给 fallback 说人话（"未启用" / "未设置"）。
-    const BLANK_WORDS = ["null", "none", "undefined", "nil"];
-    const norm = function (value) {
-        if (value === null || value === undefined) { return ""; }
-        const text = String(value).trim();
-        return BLANK_WORDS.indexOf(text.toLowerCase()) >= 0 ? "" : text;
-    };
-    const pick = function (group, key) { return norm((settings[group] || {})[key]); };
-    const uploadMb = Number(app.max_upload_size || 0);
-    setSummary("sum-llm", [pick("llm", "binding"), pick("llm", "model") || norm(lr.LLM_MODEL)], "未设置");
-    setSummary("sum-embedding", [pick("embedding", "binding"), pick("embedding", "model") || norm(lr.EMBEDDING_MODEL),
-        lr.EMBEDDING_DIM ? (lr.EMBEDDING_DIM + " 维") : ""], "未设置");
-    setSummary("sum-rerank", [pick("rerank", "binding") || norm(lr.RERANK_BINDING),
-        pick("rerank", "model") || norm(lr.RERANK_MODEL)], "未启用");
-    setSummary("sum-vector", [norm(lr.LIGHTRAG_VECTOR_STORAGE),
-        pick("rag", "chunk_size") ? (pick("rag", "chunk_size") + " tokens/块") :
-            (norm(lr.CHUNK_SIZE) ? (norm(lr.CHUNK_SIZE) + " tokens/块") : "")], "—");
-    setSummary("sum-paths", [norm(lr.WORKING_DIR)], "—");
-    setSummary("sum-app", [uploadMb ? (Math.round(uploadMb / 1048576 * 10) / 10 + " MB 上限") : "",
-        norm(app.log_level),
-        (String(app.skill_routing || "").toLowerCase() === "on") ? "技能路由开" : "技能路由关",
-        "LightRAG 上游生成"], "—");
-    setSummary("sum-status", [norm(app.lightrag_url)], "只读汇总");
-    // Phase 18：质检恒定开启 —— 摘要里说清"关不掉"，用户如果改过 .env 就点明"已被忽略"
-    setSummary("sum-quality", ["恒定开启 · " + (quality.profile || "standard")
-        + (quality.switch_ignored ? "（QUALITY_ENABLED=false 已忽略）" : "")], "—");
-    // 入库确认（Phase 15）：摘要里同时说清「保存的」与「当前生效的」，避免误以为没保存成功
-    const gate = (data && data.ingest_confirm_effective) || {};
-    const gateSaved = pick("ingest", "confirm");
-    setSummary("sum-ingest", [
-        INGEST_MODE_TEXT[gate.mode] || INGEST_MODE_TEXT.always,
-        (gateSaved && gateSaved !== gate.mode) ? ("已保存 " + gateSaved + " · 待重启") : ""
-    ], "—");
-    setSummary("sum-ocr", [ocr.enabled
-        ? ((pick("ocr", "mode") || "已启用") + " · " + (ocr.provider || "") + (ocr.external ? " · 会外发" : " · 不外发"))
-        : (preview.enabled_after_restart
-            ? "已保存 · 待重启后启用"
-            : (preview.reason ? "未启用 · " + preview.reason : "未启用 · 不会外发任何文件"))], "—");
-    // 文件夹轮询（Phase 16）：摘要里说清「开没开 / 多久扫一次 / 收件箱确认方式」
-    const inbox = (data && data.inbox_effective) || {};
-    const inboxSaved = pick("inbox", "enabled");
-    const inboxWaiting = Boolean(inboxSaved && ((inboxSaved === "true") !== Boolean(inbox.enabled)));
-    setSummary("sum-inbox", [
-        inbox.enabled ? ("已开启 · 每 " + (inbox.poll_seconds || 10) + " 秒") : "未开启（收件箱不扫描）",
-        "确认 " + (INBOX_MODE_TAG[inbox.confirm] || INBOX_MODE_TAG.auto),
-        inboxWaiting ? "已保存 · 待重启" : ""
-    ], "—");
-    const navInbox = document.getElementById("nav-inbox");
-    if (navInbox) {
-        navInbox.textContent = inbox.enabled ? (INBOX_MODE_TAG[inbox.confirm] || "auto") : "关";
-        navInbox.className = "state" + (inbox.enabled ? (inbox.confirm === "off" ? " warn" : " on") : "");
-        navInbox.title = "现在生效：文件夹轮询 " + (inbox.enabled ? "开启" : "关闭")
-            + "，收件箱确认 " + (inbox.confirm || "auto")
-            + (inboxWaiting ? "（已保存 " + inboxSaved + "，重启后生效）" : "");
-    }
-    const navQuality = document.getElementById("nav-quality");
-    if (navQuality) {
-        // Phase 18：质检关不掉 —— 导航徽标恒定显示「开」，被忽略的 .env 开关写进 title
-        navQuality.textContent = "开";
-        navQuality.className = "state on";
-        navQuality.title = "现在生效：质量校验恒定开启（" + (quality.profile || "standard") + "）"
-            + (quality.switch_ignored ? "；.env 里的 QUALITY_ENABLED=false 已被忽略" : "");
-    }
-    const navIngest = document.getElementById("nav-ingest");
-    if (navIngest) {
-        // 保存了 off / auto 但进程还在用 always 时标成「待重启」，否则最容易被误解成「没保存上」
-        const waiting = Boolean(gateSaved && gateSaved !== gate.mode);
-        navIngest.textContent = INGEST_MODE_TAG[gate.mode] || "逐个";
-        navIngest.className = "state" + ((gate.mode === "off" || waiting) ? " warn" : " on");
-        navIngest.title = "现在生效：" + gate.mode + (waiting ? ("（已保存 " + gateSaved + "，重启后生效）") : "");
-    }
-    const navOcr = document.getElementById("nav-ocr");
-    if (navOcr) {
-        // 「待重启」：配置已打开但进程还在用旧值，避免用户误以为没保存成功
-        const waiting = Boolean(preview.enabled_after_restart && !ocr.enabled);
-        navOcr.textContent = ocr.enabled ? (pick("ocr", "mode") || "开") : (waiting ? "待重启" : "关");
-        navOcr.className = "state" + (ocr.external ? " warn" : (ocr.enabled ? " on" : (waiting ? " warn" : "")));
-    }
-}
-
-// 入库确认（Phase 15）：三种方式的人话说法 + 「保存了什么 / 现在生效什么」的说明
-const INGEST_MODE_TEXT = {
-    always: "逐个确认（每个文件都等你点头）",
-    auto: "智能放行（建议入库的自动入库，其余问你）",
-    off: "不确认（通过校验就直接入库）"
-};
-const INGEST_MODE_TAG = { always: "逐个", auto: "智能", off: "直通" };
-// 文件夹轮询（Phase 16）：确认门取值域与入库确认门完全相同，作用范围不同而已
-const INBOX_MODE_TAG = INGEST_MODE_TAG;
-const INBOX_MODE_TEXT = {
-    always: "逐个确认（文件夹来的文件也停下来问我）",
-    auto: "智能放行（建议入库的自动入库，其余问我）",
-    off: "不确认（通过质检就直接入库）"
-};
-
-function renderIngestHint(data) {
-    const box = document.getElementById("ingestState");
-    if (!box) { return; }
-    const gate = (data && data.ingest_confirm_effective) || {};
-    const settings = (data && data.settings) || {};
-    const ingest = settings.ingest || {};
-    const saved = String(ingest.confirm || "");
-    const savedTtl = String(ingest.ttl_hours || "");
-    const mode = gate.mode || "always";
-    const ttl = (gate.pending_review_ttl_hours === undefined || gate.pending_review_ttl_hours === null)
-        ? 24 : gate.pending_review_ttl_hours;
-    const waiting = [];
-    if (saved && saved !== mode) { waiting.push("确认方式 → " + saved); }
-    if (savedTtl && savedTtl !== String(ttl)) { waiting.push("保留时长 → " + savedTtl + " 小时"); }
-    if (waiting.length) {
-        box.className = "note-line warn";
-        box.textContent = "已保存但还没生效：" + waiting.join("、") + "。当前进程仍按 " + mode + " 执行——"
-            + "重启服务后新设置生效（项目根目录双击 appctl.vbs restart，无窗口）。";
-        return;
-    }
-    box.className = "note-line" + (mode === "off" ? " warn" : " ok");
-    box.textContent = "现在生效：" + mode + " —— " + (INGEST_MODE_TEXT[mode] || "")
-        + "。停在确认门的文件保留 " + ttl + " 小时，超时按「跳过」处理：原件、解析结果与建议都会留着，随时可以再点「仍要入库」。"
-        + (mode === "off" ? "注意：这时错内容也会进知识库，出错只能靠删数据。" : "");
-}
-
-// 文件夹轮询（Phase 16）：同样把「保存了什么 / 现在生效什么 / 为什么还不能用」讲清楚
-function renderInboxHint(data) {
-    const box = document.getElementById("inboxState");
-    if (!box) { return; }
-    const inbox = (data && data.inbox_effective) || {};
-    const settings = (data && data.settings) || {};
-    const saved = settings.inbox || {};
-    const polling = inbox.poll_seconds || 10;
-    const settle = inbox.settle_seconds === undefined || inbox.settle_seconds === null
-        ? 5 : inbox.settle_seconds;
-    const waiting = [];
-    if (String(saved.enabled || "") && ((String(saved.enabled) === "true") !== Boolean(inbox.enabled))) {
-        waiting.push("开关 → " + String(saved.enabled));
-    }
-    if (String(saved.poll_seconds || "") && String(saved.poll_seconds) !== String(polling)) {
-        waiting.push("扫描间隔 → " + String(saved.poll_seconds) + " 秒");
-    }
-    if (String(saved.confirm || "") && String(saved.confirm) !== String(inbox.confirm)) {
-        waiting.push("确认方式 → " + String(saved.confirm));
-    }
-    if (waiting.length) {
-        box.className = "note-line warn";
-        box.textContent = "已保存但还没生效：" + waiting.join("、") + "。当前进程仍是 "
-            + (inbox.enabled ? "开启" : "关闭") + " / 每 " + polling + " 秒 / 确认 "
-            + (inbox.confirm || "auto")
-            + "——重启服务后新设置生效（项目根目录双击 appctl.vbs restart，无窗口）。";
-        return;
-    }
-    box.className = "note-line";
-    box.textContent = "现在生效：" + (inbox.enabled ? "开启" : "关闭")
-        + "，每 " + polling + " 秒扫一次收件箱，文件长稳 " + settle + " 秒后受理；"
-        + "确认方式 " + (inbox.confirm || "auto") + "（" + (INBOX_MODE_TEXT[inbox.confirm] || "") + "）。"
-        + "目录：" + ((inbox.dirs || {}).inbox || "ProfileAI/data/inbox") + " → 原件留档 "
-        + ((inbox.dirs || {}).originals || "ProfileAI/data/originals") + "（受理失败隔离在 "
-        + ((inbox.dirs || {}).failed || "ProfileAI/data/inbox/_failed") + "）。";
-}
-
-// 把「保存了什么 / 现在生效什么 / 为什么还不能用」写成一句人话（Phase 9.2）
-function renderOcrHint(data) {
-    const box = document.getElementById("ocrState");
-    if (!box) { return; }
-    const ocr = (data && data.ocr_effective) || {};
-    const preview = (data && data.ocr_preview) || {};
-    const parts = [];
-    if (preview.reason) {
-        parts.push("重启后仍不会启用 OCR：" + preview.reason + "。");
-    } else if (preview.enabled_after_restart && !ocr.enabled) {
-        parts.push("已保存：模式 " + (preview.configured_mode || "") + "、提供方 " + (preview.configured_provider || "")
-            + "；重启服务后启用（当前生效值仍是 " + (ocr.mode || "off") + "）。");
-    } else if (ocr.enabled) {
-        parts.push("当前已启用：" + (ocr.mode || "") + " · " + (ocr.provider || "")
-            + (ocr.external ? "（会把文件发送到外部服务）" : "（不外发）") + "。");
-    } else {
-        parts.push("当前未启用（不会向外部发送任何文件）。");
-    }
-    if (preview.pending_env && preview.pending_env.length) {
-        parts.push("尚未生效的项：" + preview.pending_env.join(" / ") + "。");
-    }
-    if (data && data.restart_needed) {
-        parts.push("重启：双击项目根目录的 appctl.vbs restart（无窗口；旧名字 restart_silent.vbs 仍可用）。");
-    }
-    const selected = (data && data.ocr_providers || []).filter(function (item) { return item.selected; })[0];
-    if (selected) {
-        parts.push("提供方就绪情况：" + (selected.label || selected.name) + " — " + (selected.available ? "可用" : (selected.detail || "不可用")));
-    }
-    box.textContent = parts.join(" ");
-    box.className = "note-line" + (preview.reason ? " warn" : ((ocr.enabled || preview.enabled_after_restart) ? " ok" : ""));
-}
-
-/* ---------- 局域网授权通用错误文案 ---------- */
-function chatErrorText(data, status) {
-    var detail = data && data.detail;
-    if (typeof detail === "string" && detail) { return detail; }
-    if (detail && typeof detail === "object") { return detail.message || JSON.stringify(detail); }
-    return "HTTP " + status;
-}
-
-/* ---------- 局域网设备一键授权 ---------- */
-var ACCESS_POLL_TIMER = null;
-var ACCESS_AUTO_REVEALED = false;
-
-function accessDeviceErrorText(data, status) {
-    if (typeof chatErrorText === "function") { return chatErrorText(data, status); }
-    var detail = data && data.detail;
-    return (detail && (detail.message || detail)) || ("HTTP " + status);
-}
-
-function accessTimeText(value) {
-    var date = value ? new Date(value) : null;
-    if (!date || isNaN(date.getTime())) { return "—"; }
-    return date.toLocaleString("zh-CN", { hour12: false });
-}
-
-function renderAccessDevices(items, error) {
-    var box = document.getElementById("accessDeviceList");
-    if (!box) { return; }
-    box.textContent = "";
-    if (error) {
-        var err = document.createElement("div");
-        err.className = "access-device-empty";
-        err.textContent = error;
-        box.appendChild(err);
-        return;
-    }
-    if (!items || !items.length) {
-        var empty = document.createElement("div");
-        empty.className = "access-device-empty";
-        empty.textContent = "暂无已授权设备";
-        box.appendChild(empty);
-        return;
-    }
-    if (!ACCESS_AUTO_REVEALED) {
-        ACCESS_AUTO_REVEALED = true;
-        var card = box.closest("section");
-        if (card && card.classList.contains("collapsed")) {
-            toggleSection(card.id);
-        }
-        var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-        box.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
-    }
-    items.forEach(function (item) {
-        var row = document.createElement("div");
-        row.className = "access-device";
-        var main = document.createElement("div");
-        main.className = "access-device-main";
-        var name = document.createElement("div");
-        name.className = "access-device-name";
-        name.textContent = item.name || "未命名设备";
-        var meta = document.createElement("div");
-        meta.className = "access-device-meta";
-        meta.textContent = "授权时间 " + accessTimeText(item.created_at)
-            + " · 最近使用 " + accessTimeText(item.last_seen_at)
-            + (item.last_ip ? " · " + item.last_ip : "");
-        main.appendChild(name);
-        main.appendChild(meta);
-        var del = document.createElement("button");
-        del.type = "button";
-        del.className = "btn-clear";
-        del.textContent = "删除";
-        del.addEventListener("click", function () {
-            askConfirm({
-                title: "删除已授权设备？",
-                body: "设备「" + (item.name || "未命名设备") + "」将立即失去访问权限，需要重新在电脑上允许。",
-                confirmText: "删除设备",
-                danger: true
-            }).then(function (ok) {
-                if (!ok) { return; }
-                fetch("/api/app/access/devices/" + encodeURIComponent(item.id), {
-                    method: "DELETE",
-                    cache: "no-store"
-                }).then(function (res) {
-                    return res.json().catch(function () { return {}; }).then(function (data) {
-                        if (!res.ok) { throw new Error(accessDeviceErrorText(data, res.status)); }
-                        setStatus("已删除授权设备：" + (item.name || "未命名设备"), true);
-                        loadAccessDevices();
-                    });
-                }).catch(function (err) {
-                    setStatus("删除设备失败：" + ((err && err.message) || "未知错误"), false);
-                });
-            });
-        });
-        row.appendChild(main);
-        row.appendChild(del);
-        box.appendChild(row);
-    });
-}
-
-function loadAccessDevices() {
-    fetch("/api/app/access/devices", { cache: "no-store" })
-        .then(function (res) {
-            return res.json().catch(function () { return {}; }).then(function (data) {
-                if (!res.ok) {
-                    renderAccessDevices([], res.status === 403
-                        ? "仅电脑本机可以查看和管理授权设备"
-                        : accessDeviceErrorText(data, res.status));
-                    return;
-                }
-                renderAccessDevices(data.devices || []);
-            });
-        })
-        .catch(function () { renderAccessDevices([], "读取已授权设备失败，请刷新重试"); });
-}
-
-function renderAccessRequests(items, error) {
-    var box = document.getElementById("accessRequestList");
-    if (!box) { return; }
-    box.textContent = "";
-    if (error) {
-        var err = document.createElement("div");
-        err.className = "access-device-empty";
-        err.textContent = error;
-        box.appendChild(err);
-        return;
-    }
-    if (!items || !items.length) {
-        var empty = document.createElement("div");
-        empty.className = "access-device-empty";
-        empty.textContent = "暂无新设备请求。平板打开上面的地址后会出现在这里。";
-        box.appendChild(empty);
-        return;
-    }
-    items.forEach(function (item) {
-        var row = document.createElement("div");
-        row.className = "access-device access-request";
-        var main = document.createElement("div");
-        main.className = "access-device-main";
-        var name = document.createElement("div");
-        name.className = "access-device-name";
-        name.textContent = item.name || "未命名设备";
-        var meta = document.createElement("div");
-        meta.className = "access-device-meta";
-        meta.textContent = "请求时间 " + accessTimeText(item.created_at)
-            + (item.client_ip ? " · " + item.client_ip : "");
-        main.appendChild(name);
-        main.appendChild(meta);
-
-        var actions = document.createElement("div");
-        actions.className = "access-actions";
-        var ignore = document.createElement("button");
-        ignore.type = "button";
-        ignore.className = "access-ignore";
-        ignore.textContent = "忽略";
-        ignore.addEventListener("click", function () {
-            ignore.disabled = true;
-            fetch("/api/app/access/requests/" + encodeURIComponent(item.id), {
-                method: "DELETE",
-                cache: "no-store"
-            }).then(function () {
-                loadAccessRequests();
-            }).catch(function () {
-                ignore.disabled = false;
-                setStatus("忽略设备请求失败，请重试", false);
-            });
-        });
-        var allow = document.createElement("button");
-        allow.type = "button";
-        allow.className = "access-allow";
-        allow.textContent = "允许";
-        allow.addEventListener("click", function () {
-            allow.disabled = true;
-            ignore.disabled = true;
-            fetch("/api/app/access/requests/" + encodeURIComponent(item.id) + "/approve", {
-                method: "POST",
-                cache: "no-store"
-            }).then(function (res) {
-                return res.json().catch(function () { return {}; }).then(function (data) {
-                    if (!res.ok) { throw new Error(accessDeviceErrorText(data, res.status)); }
-                    setStatus("已允许「" + (item.name || "未命名设备") + "」连接", true);
-                    loadAccessRequests();
-                    setTimeout(loadAccessDevices, 1800);
-                });
-            }).catch(function (err) {
-                allow.disabled = false;
-                ignore.disabled = false;
-                setStatus("允许设备失败：" + ((err && err.message) || "未知错误"), false);
-            });
-        });
-        actions.appendChild(ignore);
-        actions.appendChild(allow);
-        row.appendChild(main);
-        row.appendChild(actions);
-        box.appendChild(row);
-    });
-}
-
-function loadAccessRequests() {
-    fetch("/api/app/access/requests", { cache: "no-store" })
-        .then(function (res) {
-            return res.json().catch(function () { return {}; }).then(function (data) {
-                if (!res.ok) {
-                    renderAccessRequests([], res.status === 403
-                        ? "仅电脑本机可以确认新设备"
-                        : accessDeviceErrorText(data, res.status));
-                    return;
-                }
-                renderAccessRequests(data.requests || []);
-            });
-        })
-        .catch(function () {
-            renderAccessRequests([], "读取新设备请求失败，正在自动重试");
-        });
-}
-
-function loadAccessConnectInfo() {
-    var url = document.getElementById("accessPairUrl");
-    fetch("/api/app/access/connect-info", { cache: "no-store" })
-        .then(function (res) {
-            return res.json().catch(function () { return {}; }).then(function (data) {
-                if (!res.ok) { throw new Error(accessDeviceErrorText(data, res.status)); }
-                if (url) {
-                    url.textContent = data.url || "";
-                    url.setAttribute("data-url", data.url || "");
-                }
-            });
-        })
-        .catch(function (err) {
-            if (url) { url.textContent = "读取地址失败：" + ((err && err.message) || "未知错误"); }
-        });
-}
-
-function copyAccessUrl() {
-    var node = document.getElementById("accessPairUrl");
-    var text = node ? (node.getAttribute("data-url") || node.textContent || "") : "";
-    if (!text) {
-        setStatus("聊天地址尚未读取完成", false);
-        return;
-    }
-    var done = function () { setStatus("聊天地址已复制", true); };
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(done).catch(done);
-        return;
-    }
-    var area = document.createElement("textarea");
-    area.value = text;
-    area.style.position = "fixed";
-    area.style.opacity = "0";
-    document.body.appendChild(area);
-    area.select();
-    try { document.execCommand("copy"); } catch (err) {}
-    document.body.removeChild(area);
-    done();
-}
-
-function refreshAccessOverview() {
-    loadAccessRequests();
-    loadAccessDevices();
-}
-
-function bindAccessDevices() {
-    var refresh = document.getElementById("accessDevicesRefresh");
-    var copy = document.getElementById("accessCopyUrl");
-    if (refresh) { refresh.addEventListener("click", refreshAccessOverview); }
-    if (copy) { copy.addEventListener("click", copyAccessUrl); }
-    loadAccessConnectInfo();
-    refreshAccessOverview();
-    if (ACCESS_POLL_TIMER) { clearInterval(ACCESS_POLL_TIMER); }
-    ACCESS_POLL_TIMER = setInterval(function () {
-        if (!document.hidden) { loadAccessRequests(); }
-    }, 2000);
-}
-
-bindAccessDevices();
-
-function refreshMemoryStatus() {
-    if (typeof window.fetch !== "function") { return; }
-    window.fetch("/api/memory/status", { cache: "no-store" })
-        .then(function (res) { return res.ok ? res.json() : null; })
-        .then(function (data) {
-            var state = document.getElementById("memoryState");
-            var count = document.getElementById("memoryCount");
-            var ctx = document.getElementById("memoryContext");
-            var queue = document.getElementById("memoryQueue");
-            var path = document.getElementById("memoryPath");
-            if (!data) {
-                if (state) { state.textContent = "读取失败（服务端未响应）"; }
-                return;
-            }
-            if (state) {
-                state.textContent = data.enabled
-                    ? (data.ready
-                        ? "已启用 · 就绪"
-                        : ("已启用 · 未就绪：" + (data.error || "初始化失败")))
-                    : "未启用（MEMORY_ENABLED=off）";
-            }
-            if (count) {
-                count.textContent = data.enabled
-                    ? ((data.memory_count || 0) + " 条（待确认 "
-                        + (data.pending_memory_count || 0) + "）")
-                    : "—";
-            }
-            if (ctx) {
-                ctx.textContent = data.enabled
-                    ? ((data.context_enabled ? "开" : "关")
-                        + " · Tier 1 " + (data.fast_memory ? "开" : "关")
-                        + " · 上游历史 " + (data.upstream_history || "auto"))
-                    : "—";
-            }
-            if (queue) {
-                if (!data.enabled) {
-                    queue.textContent = "—";
-                } else {
-                    var jobs = data.jobs || {};
-                    queue.textContent = (jobs.queued || 0) + " 排队 · "
-                        + (jobs.running || 0) + " 运行 · "
-                        + (jobs.failed || 0) + " 失败"
-                        + (data.auto_extract ? "" : " · 自动提取关");
-                }
-            }
-            if (path) { path.textContent = data.path || "—"; }
-            setSummary("sum-memory", [
-                data.enabled ? "已启用" : "未启用",
-                data.enabled ? (data.context_enabled ? "上下文开" : "上下文关") : ""
-            ], "—");
-        })
-        .catch(function () {
-            var state = document.getElementById("memoryState");
-            if (state) { state.textContent = "读取失败（网络错误）"; }
-        });
-}
-
-// ---------- 可达性 ----------
-// .card-head / .nav-item 都是 div + onclick：鼠标点得到，Tab 走不到、回车也没反应。
-// 键盘路径统一走 node.click()，与鼠标共用同一个 onclick，不另写一套逻辑免得走岔。
-function bindActivateKey(node) {
-    node.addEventListener("keydown", function (event) {
-        if (event.key !== "Enter" && event.key !== " " && event.key !== "Spacebar") { return; }
-        event.preventDefault();      // 空格默认会滚动页面
-        node.click();
-    });
-}
-
-// <label> 既没有 for、也没把控件包在里面，输入框/下拉因此没有可访问名（读屏只念"编辑框"）。
-// 从同一行的 <label> 文本补 aria-label；已经写了更具体说明的不覆盖。
-function labelFields() {
-    document.querySelectorAll(".row label").forEach(function (label) {
-        const row = label.parentNode;
-        const field = row ? row.querySelector("input,select") : null;
-        if (!field) { return; }
-        const text = label.textContent.trim();
-        if (!text) { return; }
-        if (!field.hasAttribute("aria-label")) { field.setAttribute("aria-label", text); }
-        // 确认框里要认得出是哪一组的字段（"模型名称"在① ② ③ 三组里都有）
-        const card = row.closest(".card");
-        const head = card ? card.querySelector(".card-head h2") : null;
-        const group = head ? head.textContent.replace(/（.*?）/g, "").trim() : "";
-        if (field.id) { FIELD_LABELS[field.id] = (group ? group + " · " : "") + text; }
-    });
-}
-
-// 折叠状态只有卡片上的 .collapsed 一个真相源，这里把它同步到 aria-expanded，
-// 让读屏用户也知道这一组现在是展开还是收起。
-function syncExpanded() {
-    SECTIONS.forEach(function (item) {
-        const card = document.getElementById(item.id);
-        if (!card) { return; }
-        const head = card.querySelector(".card-head");
-        if (head) {
-            head.setAttribute("aria-expanded", card.classList.contains("collapsed") ? "false" : "true");
-        }
-    });
-    document.querySelectorAll(".nav-item").forEach(function (node) {
-        const card = document.getElementById(node.getAttribute("data-target") || "");
-        node.setAttribute("aria-expanded", (card && !card.classList.contains("collapsed")) ? "true" : "false");
-    });
-}
-
-function initA11y() {
-    document.querySelectorAll(".card-head").forEach(function (head) {
-        head.setAttribute("role", "button");
-        head.setAttribute("tabindex", "0");
-        head.setAttribute("aria-expanded", "true");
-        bindActivateKey(head);
-    });
-    labelFields();
-    syncExpanded();
-}
-
-function initLayout() {
-    buildNav();
-    applyCollapsed();
-    initScrollSpy();
-    initA11y();
-    initDirtyTracking();
-    initSecretClear();
-}
-
-initLayout();
-
+const S = {};
+let DATA = null, BASELINE = {}, PENDING_CLEAR = new Set();
+const byId = id => document.getElementById(id);
+const fieldId = (g,k) => g + "_" + k;
+function setStatus(text, ok) { const n=byId("status"); n.textContent=text||""; n.className="status"+(ok===true?" ok":ok===false?" bad":""); }
+function nav() { const box=byId("navlist"); SECTIONS.forEach(s=>{const b=document.createElement("div");b.className="nav-item";b.innerHTML='<span>'+s.num+'</span><span></span>';b.lastChild.textContent=s.name;b.addEventListener("click",()=>{byId(s.id).open=true;byId(s.id).scrollIntoView({behavior:"smooth",block:"start"});});box.appendChild(b);}); }
+function snapshot() { BASELINE={}; for(const [g,k] of SPECS){const n=byId(fieldId(g,k));if(!n)continue;BASELINE[g+"."+k]=SECRETS.has(g+"."+k)?"":n.value;} PENDING_CLEAR.clear(); document.querySelectorAll("[data-clear]").forEach(b=>b.classList.remove("pending")); renderDirty(); }
+function isDirty() { return SPECS.some(([g,k])=>{const key=g+"."+k;if(PENDING_CLEAR.has(k))return true;const n=byId(fieldId(g,k));if(!n)return false;if(SECRETS.has(key))return n.value.trim()!=="";return n.value!==BASELINE[key];}); }
+function renderDirty() { const d=byId("dirty"); const n=SPECS.filter(([g,k])=>{const key=g+"."+k;if(PENDING_CLEAR.has(k))return true;const x=byId(fieldId(g,k));return x&&(SECRETS.has(key)?x.value.trim()!=="":x.value!==BASELINE[key]);}).length; d.hidden=!n; d.textContent=n?("未保存 "+n+" 项"):""; }
+function setValue(g,k,v){const n=byId(fieldId(g,k));if(!n)return;if(SECRETS.has(g+"."+k)){const masked=String(v||"");n.value="";n.placeholder=masked?("已保存 "+masked+"，留空保持不变"):"未配置";}else{if(typeof v==="boolean")v=v?"true":"false";n.value=v==null?"":String(v);}}
+function fill(data){DATA=data;const s=data.settings||{};for(const [g,k] of SPECS)setValue(g,k,(s[g]||{})[k]);snapshot();byId("settingsFile").textContent=data.settings_file||"—";const r=byId("restartState");r.textContent=data.restart_needed?"有改动待重启":"已生效";r.className=data.restart_needed?"bad":"ok";renderEffective(data);renderSummaries(data);}
+function collect(){const body={};for(const [g,k] of SPECS){const n=byId(fieldId(g,k));if(!n)continue;const key=g+"."+k;if(SECRETS.has(key)&&n.value.trim()==="")continue;(body[g]||(body[g]={}))[k]=n.value;}if(PENDING_CLEAR.size)body.clear_secrets=[...PENDING_CLEAR].map(k=>{const p=SPECS.find(([g,x])=>x===k);return [p[0],p[1]];});return body;}
+async function request(url,opt){const r=await fetch(url,opt);let d={};try{d=await r.json();}catch(e){}if(!r.ok){const detail=d.detail;throw new Error(typeof detail==="string"?detail:(detail&&detail.message)||("HTTP "+r.status));}return d;}
+async function load(quiet){setStatus(quiet?"":"读取设置…");try{const d=await request("/api/settings",{cache:"no-store"});fill(d);setStatus(quiet?"已重新加载":"已加载",true);refreshMemoryStatus();loadAccess();}catch(e){setStatus("读取失败："+e.message,false);}}
+async function save(){const btn=byId("saveBtn");btn.disabled=true;setStatus("保存中…");try{const d=await request("/api/settings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(collect())});fill(d);setStatus("已保存"+(d.restart_needed?"，请重启应用":""),true);}catch(e){setStatus("保存失败："+e.message,false);}finally{btn.disabled=false;}}
+async function test(){const btn=byId("testBtn");btn.disabled=true;setStatus("测试连接…");try{const d=await request("/api/settings/test",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});const box=byId("testList");box.textContent="";for(const c of (d.checks||[])){const li=document.createElement("li");li.className=c.ok?"ok":"bad";li.textContent=(c.ok?"✓ ":"✗ ")+c.name+"："+(c.detail||"");box.appendChild(li);}setStatus(d.all_ok?"连接正常":"部分连接异常",!!d.all_ok);}catch(e){setStatus("测试失败："+e.message,false);}finally{btn.disabled=false;}}
+function renderEffective(data){const lr=data.lightrag_effective||{},app=data.app_effective||{},rows=[["LightRAG",app.lightrag_url||lr.LIGHTRAG_URL||"—"],["生成模型",[(lr.LLM_BINDING||""),(lr.LLM_MODEL||"")].filter(Boolean).join(" / ")||"—"],["嵌入模型",[(lr.EMBEDDING_BINDING||""),(lr.EMBEDDING_MODEL||"")].filter(Boolean).join(" / ")||"—"],["向量存储",lr.LIGHTRAG_VECTOR_STORAGE||"—"],["分块",(lr.CHUNK_SIZE||"默认")+" / 重叠 "+(lr.CHUNK_OVERLAP_SIZE||"默认")],["召回",(lr.TOP_K||"默认")+" / 片段 "+(lr.CHUNK_TOP_K||"默认")],["OCR",(data.ocr_effective&&data.ocr_effective.mode)||"—"]];const body=byId("effectiveRows");body.textContent="";rows.forEach(([a,b])=>{const tr=document.createElement("tr"),td1=document.createElement("td"),td2=document.createElement("td");td1.textContent=a;td2.textContent=b;tr.append(td1,td2);body.appendChild(tr);});}
+function renderSummaries(data){const s=data.settings||{},v=(g,k)=>(s[g]||{})[k]||"";byId("sum-models").textContent=[v("llm","binding"),v("llm","model")].filter(Boolean).join(" / ")||"未设置";byId("sum-knowledge").textContent=v("rag","chunk_size")?(v("rag","chunk_size")+" / 块"):"默认";byId("sum-ingest").textContent=v("ingest","confirm")||"always";byId("sum-ocr").textContent=v("ocr","mode")||"off";byId("sum-access").textContent="局域网 "+(document.body.dataset.lan==="1"?"开启":"按需");byId("sum-diagnostics").textContent=data.restart_needed?"待重启":"正常";const inbox=data.inbox_effective||{};byId("inboxState").textContent=(inbox.enabled?"收件箱开启":"收件箱关闭")+" · "+((inbox.dirs||{}).inbox||"用户数据目录")+" · 确认 "+(inbox.confirm||"always");}
+function copyText(text){if(navigator.clipboard&&navigator.clipboard.writeText)return navigator.clipboard.writeText(text);const t=document.createElement("textarea");t.value=text;document.body.appendChild(t);t.select();document.execCommand("copy");t.remove();}
+async function loadAccess(){try{const info=await request("/api/app/access/connect-info",{cache:"no-store"});byId("accessPairUrl").textContent=info.url||"—";byId("accessPairUrl").dataset.url=info.url||"";}catch(e){byId("accessPairUrl").textContent="仅本机可管理局域网设备";}try{const r=await request("/api/app/access/requests",{cache:"no-store"});renderAccessRequests(r.requests||[]);}catch(e){renderAccessRequests([]);}try{const d=await request("/api/app/access/devices",{cache:"no-store"});renderAccessDevices(d.devices||[]);}catch(e){renderAccessDevices([]);}}
+function deviceRow(item,requestMode){const row=document.createElement("div");row.className="device";const main=document.createElement("div");main.className="device-main";const name=document.createElement("div");name.className="device-name";name.textContent=item.name||"未命名设备";const meta=document.createElement("div");meta.className="device-meta";meta.textContent=requestMode?("请求时间 "+(item.created_at||"—")):("最近使用 "+(item.last_seen_at||"—"));main.append(name,meta);const actions=document.createElement("div");actions.className="device-actions";row.append(main,actions);return {row,actions};}
+function renderAccessRequests(items){const box=byId("accessRequestList");box.textContent="";items.forEach(item=>{const {row,actions}=deviceRow(item,true);const no=document.createElement("button");no.textContent="忽略";no.onclick=async()=>{await request("/api/app/access/requests/"+encodeURIComponent(item.id),{method:"DELETE"});loadAccess();};const yes=document.createElement("button");yes.className="allow";yes.textContent="允许";yes.onclick=async()=>{await request("/api/app/access/requests/"+encodeURIComponent(item.id)+"/approve",{method:"POST"});loadAccess();};actions.append(no,yes);box.appendChild(row);});}
+function renderAccessDevices(items){const box=byId("accessDeviceList");box.textContent="";items.forEach(item=>{const {row,actions}=deviceRow(item,false);const del=document.createElement("button");del.textContent="删除";del.onclick=async()=>{if(!confirm("删除设备 "+(item.name||"")+"？"))return;await request("/api/app/access/devices/"+encodeURIComponent(item.id),{method:"DELETE"});loadAccess();};actions.appendChild(del);box.appendChild(row);});}
+async function refreshMemoryStatus(){try{const d=await request("/api/memory/status",{cache:"no-store"});byId("memoryState").textContent=d.enabled?(d.ready?"已启用":"已启用但未就绪"):"未启用";byId("memoryCount").textContent=d.enabled?((d.memory_count||0)+" 条 / 待确认 "+(d.pending_memory_count||0)):"—";}catch(e){byId("memoryState").textContent="读取失败";}}
+function initClearButtons(){document.querySelectorAll("[data-clear]").forEach(b=>{b.addEventListener("click",()=>{const id=b.dataset.clear;const n=byId(id);if(!n)return;PENDING_CLEAR.add(id);n.value="";n.placeholder="保存后清除";b.classList.add("pending");renderDirty();});});}
+function init(){nav();document.querySelectorAll("input,select").forEach(n=>{n.addEventListener("input",renderDirty);n.addEventListener("change",renderDirty);});byId("saveBtn").addEventListener("click",save);byId("reloadBtn").addEventListener("click",()=>load(false));byId("testBtn").addEventListener("click",test);byId("accessDevicesRefresh").addEventListener("click",loadAccess);byId("accessCopyUrl").addEventListener("click",()=>{const url=byId("accessPairUrl").dataset.url||"";if(url){copyText(url);setStatus("地址已复制",true);}});initClearButtons();window.addEventListener("beforeunload",e=>{if(isDirty()){e.preventDefault();e.returnValue="";}});load(false);}
+init();
 </script>
-
 <script src="/static/session.js" defer></script>
 </body>
 </html>

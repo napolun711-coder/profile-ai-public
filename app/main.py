@@ -12,6 +12,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
+from app import __version__
 from app.core.config import get_settings
 from app.core.errors import register_exception_handlers
 from app.core.logging import setup_logging
@@ -148,6 +149,7 @@ def create_app() -> FastAPI:
 
     app = FastAPI(
         title="本地知识库助手",
+        version=__version__,
         lifespan=lifespan,
     )
 
